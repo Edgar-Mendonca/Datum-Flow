@@ -1,0 +1,16 @@
+[package]
+name = "flow-solve"
+description = "Datum Flow engine: Taylor–Hood finite elements for steady laminar flow with heat and buoyancy; Picard and Newton with continuation."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+flow-core.workspace = true
+flow-mesh.workspace = true
+# Sparse LU (MIT), https://codeberg.org/sarah-quinones/faer
+faer = { version = "0.24", default-features = false, features = ["std", "sparse-linalg", "rayon"] }

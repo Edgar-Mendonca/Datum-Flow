@@ -1,0 +1,15 @@
+[package]
+name = "flow-mesh"
+description = "Datum Flow engine: 2D meshing (constrained Delaunay with local refinement), the mesh quality report and the checks before solving."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+flow-core.workspace = true
+# Constrained Delaunay triangulation with refinement (MIT OR Apache-2.0), https://github.com/Stoeoef/spade
+spade = "2.15"
