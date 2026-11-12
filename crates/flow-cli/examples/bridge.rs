@@ -72,6 +72,13 @@ fn bridge() {
             }
             "file_text" => Ok(json!(file::write(&doc.m))),
             "fluid_preset" => fluid::preset(args["name"].as_str().unwrap_or(""), args["t"].as_f64().unwrap_or(293.15)).map(|f| json!(f)).ok_or_else(|| "That fluid is not built in.".to_string()),
+            "import_dxf" => {
+                let (outlines, n) = flow_core::dxf::read(args["text"].as_str().ok_or("No drawing was given.")?, args["scale"].as_f64().unwrap_or(1.0))?;
+                doc.apply(Op::AddShapes { shapes: outlines.into_iter().map(|o| (o.name, o.hole, o.geom)).collect() })?;
+                eng.invalidate();
+                notes = n.into_iter().map(|x| format!("DXF import: {x}")).collect();
+                Ok(state(&doc, &path, saved, &notes, &eng))
+            }
             "mesh" => eng.mesh(&doc.m, doc.revision).map(|v| json!(v)),
             "mesh_view" => Ok(json!(if eng.revision == doc.revision { eng.mesh_view() } else { None })),
             "check" => Ok(json!(if eng.revision == doc.revision { eng.check(&doc.m) } else { flow_mesh::check(&doc.m, None) })),

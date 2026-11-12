@@ -56,6 +56,7 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
         if (c === "solve_stop") return null;
         if (c === "verification" && window.__verification) return window.__verification;
         // Files: the tests keep "saved" files in the page, by path.
+        if (c === "import_dxf") a = { scale: a.scale, text: window.__dxf ?? "" };
         if (c === "open") { if (!a?.path) return null; a = { path: a.path, text: window.__files[a.path] ?? "" }; }
         const r = await window.__bridge(c, a ?? {});
         if (r.err !== undefined) throw r.err;
@@ -115,8 +116,14 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
 
   // ---------- the one part still to come says so (never a dead button)
   await tab("Geometry");
-  await p.click('.ribbon .rb:has-text("Import DXF")'); await p.waitForTimeout(80);
-  check("Geometry › Import DXF says it is coming", (await toastText()).includes("coming in 0.1.x") && (await toastText()).includes("DXF"), await toastText());
+  // DXF: a 200 × 100 mm plate of four lines with a circle in it, and a text that is left out.
+  await p.evaluate(() => { const L = (a, b, c, d) => `0\nLINE\n10\n${a}\n20\n${b}\n11\n${c}\n21\n${d}\n`; window.__dxf = "0\nSECTION\n2\nENTITIES\n" + L(0, 0, 200, 0) + L(200, 0, 200, 100) + L(200, 100, 0, 100) + L(0, 100, 0, 0) + "0\nCIRCLE\n10\n60\n20\n50\n40\n15\n0\nTEXT\n1\nnote\n0\nENDSEC\n0\nEOF\n"; });
+  const shapesBefore = (await state()).m.shapes.length;
+  await p.click('.ribbon .rb:has-text("Import DXF")'); await p.waitForTimeout(150);
+  await p.click('.ov:last-child .dlg .btn.pri'); await p.waitForTimeout(400);
+  const dxfState = await state();
+  check("Geometry › Import DXF adds the outlines as a region and a body", dxfState.m.shapes.length === shapesBefore + 2 && dxfState.m.shapes.some(s => s.hole && s.geom.type === "circle" && Math.abs(s.geom.r - 0.015) < 1e-12) && dxfState.notes.some(n => n.includes("TEXT")), JSON.stringify(dxfState.notes));
+  await p.keyboard.press("Control+z"); await p.waitForTimeout(250);
   await hear();
 
   // ---------- ? cards

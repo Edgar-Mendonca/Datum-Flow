@@ -42,3 +42,7 @@ Cut in this order: DXF import, the heat-sink example, VTU export, vorticity cont
 - **The turbulence check blocks, with an override.** Above Re 4000 with an inlet, Re 10 000 in a closed box, or Ra 10⁹, the solve is refused in plain words; "Solve anyway" turns it into a warning.
 - **Kovasznay flow is checked by its rate of convergence**, not at round-off: its solution is exponential, so no polynomial element reproduces it exactly. Couette and Poiseuille are checked at round-off.
 - **The verification report is computed at release time and shipped with the app** (it takes minutes); the app shows that record, and can run the quick cases again on the user's computer.
+
+## What happened (2026-11-12)
+
+0.1.0 shipped as step 1. Steps 2 to 6 were finished together and shipped as one release, 0.1.1: the build budget asks for releases in batches, and version numbers may not jump. Nothing on the cut list was cut.

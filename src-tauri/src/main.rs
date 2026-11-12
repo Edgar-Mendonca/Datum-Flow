@@ -387,6 +387,24 @@ async fn open(app: AppHandle, st: State<'_, St>, path: Option<String>) -> R<Opti
     Ok(Some(out(&a)))
 }
 
+/// Geometry › Import DXF: outlines of a drawing become shapes. `scale` is metres per drawing unit.
+#[tauri::command]
+async fn import_dxf(app: AppHandle, st: State<'_, St>, scale: f64, path: Option<String>) -> R<Option<Out>> {
+    let Some(path) = path.map(PathBuf::from).or_else(|| pick(&app, "DXF drawing", &["dxf"])) else { return Ok(None) };
+    let text = read_limited(&path)?;
+    let mut a = st.lock();
+    guard(|| {
+        if a.stop.is_some() {
+            return Err("A solve is running: stop it before changing the model.".into());
+        }
+        let (outlines, notes) = flow_core::dxf::read(&text, scale)?;
+        a.doc.apply(Op::AddShapes { shapes: outlines.into_iter().map(|o| (o.name, o.hole, o.geom)).collect() })?;
+        a.engine.invalidate();
+        a.notes = notes.into_iter().map(|n| format!("DXF import: {n}")).collect();
+        Ok(Some(out(&a)))
+    })
+}
+
 /// Save the model: to `path` when given, to its own file, or (never saved, or `as_new`) where the
 /// person chooses. None when they cancelled.
 #[tauri::command]
@@ -688,7 +706,7 @@ fn main() {
             }
         })
         .invoke_handler(tauri::generate_handler![
-            state, apply, undo, redo, new_doc, fluid_preset, mesh, mesh_view, check, solve_start, solve_stop, summary, field, arrows, probe, probes, line, values, export_text, verification, open, save, save_file, save_pdf, options, set_options, autosave, recovery, recover, recent, startup_file, open_link, version, quit, check_update, install_update
+            state, apply, undo, redo, new_doc, fluid_preset, import_dxf, mesh, mesh_view, check, solve_start, solve_stop, summary, field, arrows, probe, probes, line, values, export_text, verification, open, save, save_file, save_pdf, options, set_options, autosave, recovery, recover, recent, startup_file, open_link, version, quit, check_update, install_update
         ])
         .run(tauri::generate_context!())
         .expect("Datum Flow failed to start");

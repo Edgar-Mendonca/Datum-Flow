@@ -1,7 +1,7 @@
 // The engine's results as panels and dialogs: the checks list, the residual and monitor charts,
 // the mesh quality report, the legend over the view, values, line plots, the verification page
 // and the pages of the PDF report.
-import { For, Show, JSX, createSignal, createEffect, createMemo, onMount, onCleanup } from "solid-js";
+import { For, Show, JSX, createSignal, createEffect, createMemo, onMount, onCleanup, untrack } from "solid-js";
 import { Chart, LineController, LineElement, PointElement, LinearScale, LogarithmicScale, Tooltip, Legend, Filler } from "chart.js";
 import { num } from "./api";
 import { out, M, call, toast, openDialog, closeDialog, setSel, setTab, setBackstage, backstage, toU, ulabel, fmt, themeTick, KIND_NAME } from "./store";
@@ -43,8 +43,11 @@ const setSeries = (c: Chart, s: Series[]) => { c.data.datasets = s.map((d, i) =>
 /** A chart that follows its series; a PNG button saves it. */
 const LineChart = (p: { series: () => Series[]; x: string; y: string; log?: boolean; legend?: boolean; name: string; cls?: string }) => {
   let cv!: HTMLCanvasElement, chart: Chart | null = null;
-  onMount(() => { chart = makeChart(cv, p); });
-  createEffect(() => { themeTick(); const s = p.series(); if (!chart) return; const c = css("--text2"); (chart.options.scales!.x as { ticks: { color: string } }).ticks.color = c; (chart.options.scales!.y as { ticks: { color: string } }).ticks.color = c; setSeries(chart, s); });
+  // Made again when the theme changes (its axes and legend take the theme's colours), then fed its series.
+  onMount(() => {
+    createEffect(() => { themeTick(); chart?.destroy(); chart = makeChart(cv, p); setSeries(chart, untrack(p.series)); });
+    createEffect(() => { const s = p.series(); if (chart) setSeries(chart, s); });
+  });
   onCleanup(() => chart?.destroy());
   const png = async () => { const path = await call<string | null>("save_file", { name: `${M().name} ${p.name}.png`, data: chartPicture(p.series(), p) }); if (path) toast(`Saved ${path}`, true); };
   return <div class={`schart ${p.cls ?? ""}`}><canvas ref={cv} /><button class="btn sm spng" title="Save this chart as a picture" onClick={png}>PNG</button></div>;

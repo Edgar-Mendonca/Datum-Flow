@@ -3,7 +3,7 @@
 import { call, loadOut, out, setBackstage, setTab, setSel, setTool, setPickFor, setAsHole, toast, act, opts, saveOpts, setBottom, setBottomOpen, openDialog, closeDialog, setTheme, theme, tool, sel, asHole, Tab, running } from "./store";
 import { BcKind, Boundary, Out } from "./api";
 import { fit, zoomBy, viewPicture } from "./canvas";
-import { askYes } from "./ui";
+import { askYes, askPick } from "./ui";
 import * as H from "./help";
 
 export const GH = "https://github.com/Edgar-Mendonca/Datum-Flow";
@@ -11,9 +11,7 @@ export const SITE = "https://edgar-mendonca.github.io/Datum/apps/flow";
 
 /** The parts that arrive in the next 0.1.x releases. Each name is wired to the engine in one
  *  place: replace its entry here (or call the engine from `cmd`) when the part lands. */
-export const STUBS: Record<string, string> = {
-  import_dxf: "DXF import",
-};
+export const STUBS: Record<string, string> = {};
 /** Engine hooks: the main parts replace a stub by registering the real command here. */
 const wired: Record<string, (arg?: unknown) => void> = {};
 export const wire = (name: string, run: (arg?: unknown) => void) => { wired[name] = run; };
@@ -23,6 +21,17 @@ export const cmd = (name: string, arg?: unknown) => {
   if (wired[name]) return wired[name](arg);
   toast(`${STUBS[name] ?? "This"}: coming in 0.1.x. See File › Roadmap.`, true);
 };
+
+/** Geometry › Import DXF: ask what one drawing unit is, then let the engine read the outlines. */
+const importDxf = async () => {
+  if (running()) return toast("A solve is running: stop it (Solve › Stop) before changing the model.");
+  const unit = await askPick("Import DXF", "One drawing unit is", [["0.001", "a millimetre"], ["0.01", "a centimetre"], ["1", "a metre"], ["0.0254", "an inch"], ["0.3048", "a foot"]], "0.001", "Choose File…",
+    "Closed outlines of lines, arcs, circles and polylines are read. The largest becomes the flow region; outlines inside it are cut out as bodies.");
+  if (unit === null) return;
+  const o = await loadOut("import_dxf", { scale: +unit });
+  if (o) { setTab("geometry"); fit(); toast(o.notes.length ? "Imported, with notes: see Messages." : "Outlines imported.", true); }
+};
+wire("import_dxf", importDxf);
 
 /** Before the open model is replaced: ask when there are unsaved changes. */
 const sure = async (what: string) => !out()?.dirty || (await askYes("Unsaved changes", `“${out()!.m.name}” has changes that are not saved. ${what} without saving them?`, what));

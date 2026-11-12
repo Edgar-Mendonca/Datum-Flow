@@ -127,3 +127,11 @@ export const Num = (p: { value: number; set: (v: number) => void; kind?: string;
   return <span class="num"><input value={shown()} disabled={p.disabled} title={p.title} style={p.width ? { width: `${p.width}px` } : undefined} inputmode="decimal"
     onChange={e => take(e.currentTarget)} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }} />{p.kind && ulabel(p.kind) && <i>{ulabel(p.kind)}</i>}</span>;
 };
+
+/** Asks one choice from a short list in the app's own dialog. Null when cancelled. */
+export const askPick = (title: string, label: string, options: [string, string][], value: string, okText = "OK", note = "") => new Promise<string | null>(res => openDialog(() => {
+  const [v, setV] = createSignal(value);
+  let done = false;
+  onCleanup(() => { if (!done) res(null); });
+  return <Dialog title={title} okText={okText} ok={() => { done = true; res(v()); }}><div class="form"><Row label={label}><Pick value={v()} set={setV} options={options} /></Row></div>{note && <p class="muted">{note}</p>}</Dialog>;
+}));

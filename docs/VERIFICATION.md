@@ -1,6 +1,6 @@
 # Datum Flow: verification report
 
-Version **0.1.0**, run on 2026-11-12 (4 threads, linux x86_64; 389 s). **35 of 35 checks pass**.
+Version **0.1.1**, run on 2026-11-12 (4 threads, linux x86_64; 359 s). **36 of 36 checks pass**.
 
 Every release of Datum Flow solves the problems below, whose answers are known, and compares. Any FAIL blocks the release. The same record is in the app under Help › Verification, and the cases are the test suite of `crates/flow-verify` (`cargo test -p flow-verify --release -- --include-ignored`).
 
@@ -102,6 +102,16 @@ Notes:
 - **Heated cavity, Ra 1e6: Average Nusselt number.** Grid Convergence Index of the fine mesh 2.05e-5 (apparent order 2.31, extrapolated value 8.825263). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow. He states his solution is accurate to better than 1% at the highest Rayleigh number. Meshes, coarse to fine (element size → value): 0.016 → 8.824686; 0.0118 → 8.824977; 0.00879 → 8.825118.
 - **Heated cavity, Ra 1e6: Heat out through the cool wall, over heat in through the warm wall.** On the fine mesh.
 
+## 5. Regression
+
+| Case | Quantity | Reference | Datum Flow | Error | Tolerance | | Source |
+| --- | --- | ---: | ---: | ---: | ---: | --- | --- |
+| Compared with 0.1.0 | Values unchanged since the last release, of those compared | 35 | 35 | 0 abs | 3.5e1 abs | **PASS** | Datum Flow 0.1.0 |
+
+Notes:
+
+- **Compared with 0.1.0: Values unchanged since the last release, of those compared.** Each value that changed is listed below with its old and new value.
+
 ## Not verified
 
 - Validation against experiment: for the backward-facing step of Armaly et al. (1983) Datum Flow computes reattachment at 2.85 step heights at Re 100, 4.87 step heights at Re 200, 8.00 step heights at Re 389. The measured lengths are given in a figure of the paper, which could not be opened while this record was made, so no verdict is given. Values quoted for it elsewhere are about 3, 5 and 8 step heights.
@@ -109,7 +119,6 @@ Notes:
 - Flows that are turbulent, time-dependent, compressible or three-dimensional: this version does not solve them.
 - Symmetry and slip edges, heat-flux boundaries, moving walls other than a lid, and the light-oil and US-unit paths have unit tests but no benchmark row.
 - The Reynolds and Rayleigh limits of the turbulence warning are rules of thumb, not verified transition points.
-- Regression: this is the first record, so there is no earlier release to compare with. Later releases compare every value with this one.
 
 ## Sources
 

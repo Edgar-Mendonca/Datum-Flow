@@ -7,7 +7,7 @@
 | --- | --- |
 | **Product** | Datum Flow: fluid-flow simulation (CFD) on the desktop. Draw or load a geometry, choose a fluid, set inlets, outlets and walls, mesh, solve, and see velocity, pressure and temperature, with pressure drop, flow rate, drag and lift, heat transfer. Every release proves its answers in a built-in verification report |
 | **Tagline** | "Fluid flow simulation: draw it, set the flow, see and check the results." |
-| **Current version** | 0.1.0 (2026-11-12) |
+| **Current version** | 0.1.1 (2026-11-12) |
 | **Repo** | `Edgar-Mendonca/Datum-Flow` · branch `claude/magical-galileo-k8g6qh` (the first branch pushed) |
 | **Stack** | Rust engine (`crates/`, own solver), Tauri 2, SolidJS + strict TypeScript; CPU only (threads), no GPU in 0.x |
 | **Identifier** | `com.edgarmendonca.datumflow` · files `.dflow` (JSON, `format` 1) · installer `DatumFlow-x.y.z-setup.exe` + `SHA256SUMS.txt` · publisher "Datum" |
@@ -144,11 +144,8 @@ Bump the version in the root `Cargo.toml`, add the CHANGELOG section, regenerate
 | Version | Scope | State |
 | --- | --- | --- |
 | 0.1.0 | Skeleton: window, drawing, fluid, boundaries, files, updater, CI, release with provenance | ✅ |
-| 0.1.1 | Mesher in the window, quality report, checks before solving | 🔜 |
-| 0.1.2 | Solver in the window: live residuals, stop and resume; exact-solution and order tests | 🔜 |
-| 0.1.3 | Results: contours, arrows, streamlines, probes, line plots, integrated values; cylinder benchmark | 🔜 |
-| 0.1.4 | Heat and buoyancy in the window; heated-cavity benchmark; advice | 🔜 |
-| 0.1.5 | Examples complete; verification report in the app; PDF report; VTU and CSV; help cards; screenshots | 🔜 |
+| 0.1.1 | Everything else of the brief's 0.1, in one release: mesher with refinement and quality report; checks before solving; solver with live residuals, monitors, stop, resume, continuation and advice; contours, arrows, streamlines, probes, line plots, values; heat and buoyancy; the six examples; the verification report in the app and in `docs/VERIFICATION.md`; PDF report, VTU, CSV, PNG; DXF import; `flow-cli`; help cards; screenshots | ✅ |
+| 0.1.2 | After the user's review of 0.1.1: fixes and polish; reference values checked against the original papers (and the step's measured lengths, to give it a verdict); a drawn-arc tool; a manual legend range; true quadratic shading of contours; long tables flowing over pages in the PDF report | 🔜 |
 | 0.2 | **Transient:** time-dependent flow (vortex shedding, the Re 100 benchmark with Strouhal number); SUPG; animations; monitors over time | ⬜ |
 | 0.3 | **Walls and solids:** boundary-layer meshing with a y+ helper; conjugate heat transfer; axisymmetric flow | ⬜ |
 | 0.4 | **Bigger models:** iterative solvers with preconditioners; parallel assembly; parameter sweeps | ⬜ |
@@ -168,11 +165,27 @@ Bump the version in the root `Cargo.toml`, add the CHANGELOG section, regenerate
 - The window shell (ribbon, File page, Options, updater, drawing, fluid and boundary editing, 77 UI checks) from Datum Plan's shell.
 - Released 0.1.0.
 
+### 2026-11-12: Session 1, continued (0.1.1: mesh, solve, results, verification)
+- `flow_cli::Engine`: one session for the shell, the command line and the UI tests (mesh, check, solve as a job on a worker thread, fields, values, exports). The shell's commands and the tests' bridge both call it.
+- `flow-verify`: exact solutions (Couette, Poiseuille, conduction) at round-off; orders of accuracy 2.97, 2.04, 2.99 (manufactured solution with flow, heat and buoyancy) and 3.00, 2.04 (Kovasznay); benchmarks with Grid Convergence Index bands: cylinder (drag 5.57958 against 5.57954), cavity Re 1000 (stream function −0.1189355 against −0.1189366, eddy centre and six centre-line velocities), heated cavity Ra 10³ to 10⁶ (Nusselt 1.1178, 2.2448, 4.5216, 8.8251). 35 checks plus a regression row against 0.1.0, all pass; the record is built into the app and written to `docs/VERIFICATION.md`.
+- A research pass tried to confirm every reference value: the session's network could reach no original paper, so all are marked "secondary sources" (the cylinder values were read in the benchmark authors' own code; the cavity tables agree across four independent transcriptions). Armaly's step lengths could not be confirmed at all, so the step has no verdict.
+- Fixed while testing: residual scaling for a fluid starting at rest (the heated cavity stalled against round-off); wall forces next to an inlet (corner nodes are now integrated directly); loading clamped gravity and broke the Ra 10⁵ and 10⁶ examples.
+- Measured: every example solves in under 25 s (most in under 5 s) and conserves mass to round-off; 259 000 unknowns solve in 53 s on four cores; mesh independence of the examples' key numbers within 1%.
+- The window's mesh, checks, solve, results, values, exports and verification views (a second parallel worker session): 119 UI checks against the real engine. The real app was run under Xvfb: the cylinder solves through the worker thread and its events.
+- DXF import (lines, arcs, circles, polylines), `flow-cli`, PDF report, four screenshots for the site.
+- Released 0.1.1. The brief's steps 2 to 6 shipped together (see Decisions).
+- **Cut or not done:** nothing from the brief's cut list was cut (DXF import, the heat-sink example, VTU export and vorticity contours are all in). Not done: the guide and Help › Tutorial (FAMILY §10, not in the brief); multi-document tabs; a drawn-arc tool (arcs are typed as a bulge); Windows/macOS test jobs in CI (the build budget asks for Linux only; Windows runs nightly and at release).
+- **2-minute demo:** File › Examples › Flow past a cylinder, Re 20 → Home › Solve (about 5 s: watch the residuals fall) → Results: speed contours with streamlines; Results › Values: "Drag on the cylinder" 0.01116 N (× 500 = drag coefficient 5.58) → Help › Verification: 36 of 36 checks pass, the cylinder row among them.
+
 ## 5. Known limits
 
 - 2D, steady, laminar only. No turbulence model: the setup check refuses flows that are probably turbulent.
 - Symmetry and slip edges must be straight and horizontal or vertical.
 - The direct solver's memory grows faster than the mesh: about 200 000 unknowns is the practical size in 0.1.
 - No stabilisation for strongly convection-dominated flow on coarse meshes (SUPG comes in 0.2): the check warns when the mesh is coarse for the speed.
+- Results are not saved in the `.dflow` file: solve again after opening.
+- Contours are drawn as four flat-shaded triangles per element (the values are quadratic); drawing speed above about 8 000 elements has not been timed.
+- The PDF report puts each section on fixed pages: a very long boundaries table or notes would overflow. Arc sides are typed as a bulge value; there is no drawn-arc tool.
+- No guide PDF and no Help › Tutorial yet; one document at a time.
 - Reference values of the benchmarks were confirmed from secondary sources only (see `docs/VERIFICATION.md`); the original papers could not be opened from the build session.
 - The Windows installer, the PDF writer and the update install are compile-checked for Windows here but first run for real in the release workflow.

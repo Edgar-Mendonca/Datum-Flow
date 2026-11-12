@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "date": "2026-11-12",
   "checks": [
     {
@@ -773,6 +773,21 @@
       "confirmed": "exact",
       "note": "On the fine mesh.",
       "steps": []
+    },
+    {
+      "tier": 5,
+      "case": "Compared with 0.1.0",
+      "quantity": "Values unchanged since the last release, of those compared",
+      "reference": 35.0,
+      "result": 35.0,
+      "error": 0.0,
+      "tolerance": 35.0,
+      "absolute": true,
+      "pass": true,
+      "source": "Datum Flow 0.1.0",
+      "confirmed": "exact",
+      "note": "Each value that changed is listed below with its old and new value.",
+      "steps": []
     }
   ],
   "not_verified": [
@@ -780,9 +795,8 @@
     "Reference values were keyed in from secondary sources (the benchmark authors' own code and results pages as quoted by others, and independent transcriptions that agree with each other), not read from the original papers. They are marked \"secondary sources\" until checked against the papers.",
     "Flows that are turbulent, time-dependent, compressible or three-dimensional: this version does not solve them.",
     "Symmetry and slip edges, heat-flux boundaries, moving walls other than a lid, and the light-oil and US-unit paths have unit tests but no benchmark row.",
-    "The Reynolds and Rayleigh limits of the turbulence warning are rules of thumb, not verified transition points.",
-    "Regression: this is the first record, so there is no earlier release to compare with. Later releases compare every value with this one."
+    "The Reynolds and Rayleigh limits of the turbulence warning are rules of thumb, not verified transition points."
   ],
-  "seconds": 389.0,
+  "seconds": 359.0,
   "machine": "4 threads, linux x86_64"
 }
