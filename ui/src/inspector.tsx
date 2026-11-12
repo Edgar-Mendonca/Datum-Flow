@@ -3,10 +3,12 @@
 import { For, Show, Switch, Match, JSX, createSignal, createMemo } from "solid-js";
 import { Geom, Pt, Shape, Boundary, Fluid, MeshSettings, SolverSettings, Physics, Target, Monitor, MonitorKind, View, num, invoke } from "./api";
 import { out, M, sel, setSel, act, fmt, toU, fromU, ulabel, toast, setTool, tool, pickFor, setPickFor, boundaryOf, shapeOf, edgeInfo, KIND_NAME, sameEdge, snapOn, setSnapOn, opts, saveOpts } from "./store";
-import { Icon, Num, Pick, Check, Text, Seg } from "./ui";
+import { Icon, Num, Pick, Check, Text, Seg, askText } from "./ui";
 import { Help } from "./help";
 import { C, cmd } from "./cmds";
 import { edgeCount } from "./canvas";
+import { running, summary, arrowCount, setArrowCount } from "./sim";
+import { MeshQuality, linePlot } from "./simui";
 
 const Sec = (p: { t: string; h?: string; children: JSX.Element; tools?: JSX.Element }) => <section class="isec"><h3>{p.t}{p.h && <Help k={p.h} />}<span class="grow" />{p.tools}</h3>{p.children}</section>;
 /** A label on the left, a control on the right. */
@@ -299,13 +301,14 @@ const MeshCard = () => {
           <div class="lxy"><span>y</span><Num kind="len" value={a().y0} width={70} set={v => setR(i(), { ...a(), y0: v }, r.size)} /><span>to</span><Num kind="len" value={a().y1} width={70} set={v => setR(i(), { ...a(), y1: v }, r.size)} /></div></>}</Show>
       </div>}</For>
     </Sec>
+    <MeshQuality />
   </>;
 };
 
 const SolverCard = () => {
   const s = () => M().solver, put = (x: Partial<SolverSettings>) => act({ op: "set_solver", solver: { ...s(), ...x } });
   return <>
-    <Sec t="Solver" h="solversettings" tools={<button class="btn sm pri" onClick={() => cmd("solve")}>Solve</button>}>
+    <Sec t="Solver" h="solversettings" tools={<Show when={running()} fallback={<button class="btn sm pri" onClick={() => cmd("solve")}>{summary()?.stopped ? "Resume" : "Solve"}</button>}><button class="btn sm" onClick={() => cmd("stop")}>Stop</button></Show>}>
       <F l="Iterations" hint="The most steps of one solve (each continuation step gets this many)."><Num value={s().max_iter} min={1} sig={5} set={v => put({ max_iter: Math.round(v) })} /></F>
       <F l="Tolerance" hint="Stop when the residual has fallen by this factor."><Num value={s().tol} min={1e-14} sig={3} set={v => put({ tol: v })} /></F>
       <F l="Picard steps" hint="Simple, robust steps before the fast (Newton) steps take over."><Num value={s().picard} min={0} sig={4} set={v => put({ picard: Math.round(v) })} /></F>
@@ -337,11 +340,13 @@ const ResultsCard = () => {
   };
   return <>
     <Sec t="Results" h="resultsfield">
-      <Show when={!out()!.has_results}><Note>Not solved yet. Mesh › Generate, then Solve › Solve. What you choose here is kept with the model.</Note></Show>
+      <Show when={!out()!.has_results}><Note>Not solved yet: Solve › Solve meshes and solves. What you choose here is kept with the model.</Note></Show>
       <F l="Colour by"><Pick value={v().field} set={x => put({ field: x })} options={FIELDS.filter(f => f[0] !== "temperature" || M().physics.heat)} /></F>
       <F l="Colour map" hint="Viridis, Inferno and Cividis read evenly from low to high, also in grey print and for colour-blind readers."><Pick value={v().map} set={x => put({ map: x })} options={MAPS} /></F>
       <F l="Bands" hint="Steps of colour instead of a smooth shade; 0 is smooth."><Num value={v().bands} min={0} sig={3} set={x => put({ bands: Math.round(x) })} /></F>
       <F l="Show"><div class="checks"><Check label="Streamlines" value={v().streamlines} set={x => put({ streamlines: x })} /><Check label="Arrows" value={v().arrows} set={x => put({ arrows: x })} /><Check label="Mesh" value={v().mesh} set={x => put({ mesh: x })} /></div></F>
+      <Show when={v().arrows}><F l="Arrows" hint="About how many arrows are drawn over the region."><div class="slider"><span>few</span><input type="range" min="100" max="3000" step="100" value={arrowCount()} onChange={e => setArrowCount(+e.currentTarget.value)} /><span>many</span></div></F></Show>
+      <Show when={out()!.has_results}><div class="ibtns"><button class="btn sm" onClick={() => cmd("values")}>Values…</button><button class="btn sm" onClick={() => cmd("probe")}>Probe</button><button class="btn sm" onClick={() => cmd("lineplot")}>Line plot</button></div></Show>
     </Sec>
     <Sec t="Monitors" h="values">
       <For each={M().monitors} fallback={<p class="muted">None. A monitor is a number watched while solving and listed with the results.</p>}>{(m, i) =>
@@ -352,8 +357,8 @@ const ResultsCard = () => {
         <button class="btn sm" onClick={add}>Add</button></div>
     </Sec>
     <Sec t="Probes and lines" h="probes">
-      <For each={M().probes}>{(pr, i) => <div class="irow"><Icon n="probe" /><span>{pr.name || `Probe ${i() + 1}`}</span><small>{num(toU("len", pr.x), 4)}, {num(toU("len", pr.y), 4)} {ulabel("len")}</small><button class="x" title="Remove this probe" onClick={() => act({ op: "set_probes", probes: M().probes.filter((_, j) => j !== i()) })}>×</button></div>}</For>
-      <For each={M().lines}>{(l, i) => <div class="irow"><Icon n="lineplot" /><span>{l.name || `Line ${i() + 1}`}</span><small>{l.n} points</small><button class="x" title="Remove this line" onClick={() => act({ op: "set_lines", lines: M().lines.filter((_, j) => j !== i()) })}>×</button></div>}</For>
+      <For each={M().probes}>{(pr, i) => <div class="irow"><Icon n="probe" /><span title="Double-click to rename" onDblClick={async () => { const n = await askText("Rename the probe", "Name", pr.name); if (n !== null) act({ op: "set_probes", probes: M().probes.map((q, j) => (j === i() ? { ...q, name: n } : q)) }); }}>{pr.name || `Probe ${i() + 1}`}</span><small>{num(toU("len", pr.x), 4)}, {num(toU("len", pr.y), 4)} {ulabel("len")}</small><button class="x" title="Remove this probe" onClick={() => act({ op: "set_probes", probes: M().probes.filter((_, j) => j !== i()) })}>×</button></div>}</For>
+      <For each={M().lines}>{(l, i) => <div class="irow"><Icon n="lineplot" /><span title="Click to plot; double-click to rename" onClick={() => out()!.has_results && linePlot(i())} onDblClick={async () => { const n = await askText("Rename the line", "Name", l.name); if (n !== null) act({ op: "set_lines", lines: M().lines.map((q, j) => (j === i() ? { ...q, name: n } : q)) }); }}>{l.name || `Line ${i() + 1}`}</span><small>{l.n} points</small><Show when={out()!.has_results}><button class="btn sm" onClick={() => linePlot(i())}>Plot</button></Show><button class="x" title="Remove this line" onClick={() => act({ op: "set_lines", lines: M().lines.filter((_, j) => j !== i()) })}>×</button></div>}</For>
       <Show when={!M().probes.length && !M().lines.length}><p class="muted">None yet. Results › Probe and Line Plot place them in the view.</p></Show>
     </Sec>
   </>;

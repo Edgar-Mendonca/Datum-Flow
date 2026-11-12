@@ -2,6 +2,7 @@
 import { For, Show, JSX, createSignal, createMemo, onMount } from "solid-js";
 import { act, out, tab, setTab, setBackstage, openMenu, Item, openDialog, closeDialog, theme, tool, asHole, M, sel, showGrid, setShowGrid, showNames, setShowNames, snapOn, setSnapOn, treeOpen, setTreeOpen, inspOpen, setInspOpen, bottomOpen, setBottomOpen, Tab, opts, saveOpts } from "./store";
 import { C, ALL_CMDS, cmd } from "./cmds";
+import { running, summary, showQuality } from "./sim";
 import { Icon } from "./ui";
 import { Help } from "./help";
 import * as H from "./help";
@@ -97,7 +98,7 @@ const fitRibbon = (el: HTMLElement) => {
 const examplesMenu = (): Item[] => (out()?.examples ?? []).filter(e => e.id !== "empty").map(e => ({ label: e.title, run: () => C.newModel(e.id) }));
 const templatesMenu = (): Item[] => (out()?.templates ?? []).map(t => ({ label: t.title, icon: "template", run: () => C.template(t.id) }));
 const TPL_ICON: Record<string, string> = { channel: "inlet", "cavity-100": "lid", step: "poly", cylinder: "hcircle", "heated-1e4": "heat" };
-const fieldMenu = (): Item[] => [["speed", "Speed"], ["pressure", "Pressure"], ["temperature", "Temperature"], ["vorticity", "Vorticity"]].map(([k, l]) => ({ label: l, on: out()?.m.view.field === k, off: k === "temperature" && !out()?.m.physics.heat, run: () => cmd("field", k) }));
+const fieldMenu = (): Item[] => [["speed", "Speed"], ["pressure", "Pressure"], ["temperature", "Temperature"], ["vorticity", "Vorticity"], ["u", "Velocity x"], ["v", "Velocity y"], ["stream", "Stream function"], ["none", "None (outlines only)"]].map(([k, l]) => ({ label: l, on: out()?.m.view.field === k, off: k === "temperature" && !out()?.m.physics.heat, run: () => cmd("field", k) }));
 
 const Draw = () => <>
   <G l="Draw" h="draw"><B big i="rect" l="Rectangle" on={tool() === "rect"} run={() => C.tool("rect")} /><B big i="circle" l="Circle" on={tool() === "circle"} run={() => C.tool("circle")} /><B big i="poly" l="Polygon" on={tool() === "poly"} run={() => C.tool("poly")} /></G>
@@ -114,7 +115,7 @@ export const Ribbon = () => (
       <G l="Model" h="file"><B big i="new" l="New" run={() => C.newModel("empty")} dd={e => openMenu(e, [{ label: "Blank model", icon: "new", run: () => C.newModel("empty") }, "-", ...templatesMenu()])} /><B big i="folder" l="Examples" dd={e => openMenu(e, examplesMenu())} title="Finished cases to open, solve and change" />
         <S><B i="open" l="Open" run={() => C.open()} /><B i="save" l="Save" run={() => C.save()} /><B i="print" l="Print" run={C.print} /></S></G>
       <Steps />
-      <G l="Run" h="solve"><B big i="mesh" l="Generate Mesh" run={() => cmd("mesh")} /><B big i="solve" l="Solve" run={() => cmd("solve")} /><S><B i="stop" l="Stop" run={() => cmd("stop")} /><B i="wizard" l="Checks" run={() => { C.panel("checks"); cmd("check"); }} /></S></G>
+      <G l="Run" h="solve"><B big i="mesh" l="Generate Mesh" run={() => cmd("mesh")} /><B big i="solve" l={summary()?.stopped ? "Resume" : "Solve"} off={running()} run={() => cmd("solve")} /><S><B i="stop" l="Stop" off={!running()} run={() => cmd("stop")} /><B i="wizard" l="Checks" run={() => { C.panel("checks"); cmd("check"); }} /></S></G>
       <G l="Units" h="units"><S><B i="units" l="SI" on={out()?.m.units === "SI"} run={() => C.units("SI")} title="Metres, m/s, pascals, °C" /><B i="units" l="US" on={out()?.m.units === "US"} run={() => C.units("US")} title="Feet, ft/s, psi, °F" /></S></G>
     </Show>
     <Show when={tab() === "geometry"}>
@@ -133,12 +134,12 @@ export const Ribbon = () => (
       <G l="Check" h="checks"><B big i="wizard" l="Checks" run={() => { C.panel("checks"); cmd("check"); }} title="What must be right before a solve" /></G>
     </Show>
     <Show when={tab() === "mesh"}>
-      <G l="Mesh" h="meshgen"><B big i="mesh" l="Generate" run={() => cmd("mesh")} /><B big i="quality" l="Quality" run={() => cmd("mesh_quality")} title="Element count, worst angle and size ratio, coloured on the view" /></G>
+      <G l="Mesh" h="meshgen"><B big i="mesh" l="Generate" run={() => cmd("mesh")} /><B big i="quality" l="Quality" on={showQuality()} run={() => cmd("mesh_quality")} title="Element count, worst angle and size ratio, coloured on the view" /></G>
       <G l="Size" h="meshsize"><B big i="refine" l="Size & Refinement" run={() => C.go("mesh")} /><S><B i="wall" l="At walls…" run={() => C.go("mesh")} /><B i="point" l="Local sizes…" run={() => C.go("mesh")} /></S></G>
       <G l="Show" h="show"><S><Chk l="Mesh lines" v={!!out()?.m.view.mesh} set={v => { if (out()) act({ op: "set_view", view: { ...M().view, mesh: v } }); }} /></S></G>
     </Show>
     <Show when={tab() === "solve"}>
-      <G l="Run" h="solve"><B big i="solve" l="Solve" run={() => cmd("solve")} /><B big i="stop" l="Stop" run={() => cmd("stop")} /><B big i="resume" l="Resume" run={() => cmd("resume")} title="Carry on from where the last solve stopped" /></G>
+      <G l="Run" h="solve"><B big i="solve" l="Solve" off={running()} run={() => cmd("solve")} /><B big i="stop" l="Stop" off={!running()} run={() => cmd("stop")} /><B big i="resume" l="Resume" off={running() || !out()?.has_results} run={() => cmd("resume")} title="Carry on from the last answer: after a stop, or with more iterations" /></G>
       <G l="Settings" h="solversettings"><B big i="opts" l="Solver Settings" run={() => C.go("solver")} /></G>
       <G l="Watch" h="bottom"><B big i="resid" l="Residuals" run={() => C.panel("residuals")} /><B big i="monitor" l="Monitors" run={() => C.panel("monitors")} /><S><B i="messages" l="Messages" run={() => C.panel("messages")} /><B i="wizard" l="Checks" run={() => { C.panel("checks"); cmd("check"); }} /></S></G>
     </Show>

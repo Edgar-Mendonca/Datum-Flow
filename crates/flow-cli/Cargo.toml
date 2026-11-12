@@ -22,3 +22,4 @@ flow-core.workspace = true
 flow-mesh.workspace = true
 flow-solve.workspace = true
 flow-post.workspace = true
+flow-verify.workspace = true

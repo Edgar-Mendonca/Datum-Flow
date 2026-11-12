@@ -95,6 +95,8 @@ fn bridge() {
                 "line" => eng.line_csv(&doc.m, args["index"].as_u64().unwrap_or(0) as usize),
                 _ => Err("That export does not exist.".into()),
             }.map(|v| json!(v)),
+            // The record shipped with this version, read from the verification crate's folder.
+            "verification" => std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../flow-verify/report.json")).map_err(|e| e.to_string()).and_then(|t| serde_json::from_str::<Value>(&t).map_err(|e| e.to_string())),
             _ => Err(format!("unknown command {cmd}")),
         })();
         let reply = match res { Ok(v) => json!({ "id": id, "ok": v }), Err(e) => json!({ "id": id, "err": e }) };

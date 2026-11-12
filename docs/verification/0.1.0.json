@@ -1,0 +1,788 @@
+{
+  "version": "0.1.0",
+  "date": "2026-11-12",
+  "checks": [
+    {
+      "tier": 1,
+      "case": "Couette flow",
+      "quantity": "Largest error of the velocity, over the plate speed",
+      "reference": 0.0,
+      "result": 1.8735013540549517e-15,
+      "error": 1.8735013540549517e-15,
+      "tolerance": 1e-8,
+      "absolute": true,
+      "pass": true,
+      "source": "exact (u = U y / H)",
+      "confirmed": "exact",
+      "note": "Re 100 on the gap; a regular mesh of 64 elements.",
+      "steps": []
+    },
+    {
+      "tier": 1,
+      "case": "Couette flow",
+      "quantity": "Largest pressure (it should be uniform), over ρU²",
+      "reference": 0.0,
+      "result": 2.1511652277123127e-15,
+      "error": 2.1511652277123127e-15,
+      "tolerance": 1e-8,
+      "absolute": true,
+      "pass": true,
+      "source": "exact (p = constant)",
+      "confirmed": "exact",
+      "note": "",
+      "steps": []
+    },
+    {
+      "tier": 1,
+      "case": "Plane Poiseuille flow",
+      "quantity": "Largest error of the velocity, over the mean speed",
+      "reference": 0.0,
+      "result": 7.689485374484267e-14,
+      "error": 7.689485374484267e-14,
+      "tolerance": 1e-8,
+      "absolute": true,
+      "pass": true,
+      "source": "exact (u = 6 U (y/H)(1 − y/H), Δp = 12 μ U L / H²)",
+      "confirmed": "exact",
+      "note": "The Channel example: water, Re 500, automatic mesh, fully developed inlet, pressure outlet.",
+      "steps": []
+    },
+    {
+      "tier": 1,
+      "case": "Plane Poiseuille flow",
+      "quantity": "Pressure drop inlet to outlet (Pa)",
+      "reference": 0.6012000000000001,
+      "result": 0.6011999999999994,
+      "error": 1.1080070106039485e-15,
+      "tolerance": 1e-8,
+      "absolute": false,
+      "pass": true,
+      "source": "exact (u = 6 U (y/H)(1 − y/H), Δp = 12 μ U L / H²)",
+      "confirmed": "exact",
+      "note": "",
+      "steps": []
+    },
+    {
+      "tier": 1,
+      "case": "Plane Poiseuille flow",
+      "quantity": "Friction force on the plates (N per metre depth)",
+      "reference": 0.006012000000000001,
+      "result": 0.006012000000000009,
+      "error": 1.2984457155515021e-15,
+      "tolerance": 1e-8,
+      "absolute": false,
+      "pass": true,
+      "source": "exact (it balances the pressure drop: Δp H)",
+      "confirmed": "exact",
+      "note": "From the reactions at the wall nodes.",
+      "steps": []
+    },
+    {
+      "tier": 1,
+      "case": "Plane Poiseuille flow",
+      "quantity": "Net flow through all boundaries, over the flow in",
+      "reference": 0.0,
+      "result": 2.1684043449710094e-16,
+      "error": 2.1684043449710094e-16,
+      "tolerance": 1e-10,
+      "absolute": true,
+      "pass": true,
+      "source": "exact (mass is conserved)",
+      "confirmed": "exact",
+      "note": "",
+      "steps": []
+    },
+    {
+      "tier": 1,
+      "case": "Conduction between two walls",
+      "quantity": "Largest error of the temperature, over the temperature difference",
+      "reference": 0.0,
+      "result": 1.1368683772161603e-13,
+      "error": 1.1368683772161603e-13,
+      "tolerance": 1e-8,
+      "absolute": true,
+      "pass": true,
+      "source": "exact (T falls in a straight line)",
+      "confirmed": "exact",
+      "note": "The Heated cavity example with buoyancy off.",
+      "steps": []
+    },
+    {
+      "tier": 1,
+      "case": "Conduction between two walls",
+      "quantity": "Nusselt number on the warm wall",
+      "reference": 1.0,
+      "result": 0.9999999999998058,
+      "error": 1.9417800700693988e-13,
+      "tolerance": 1e-8,
+      "absolute": false,
+      "pass": true,
+      "source": "exact (Nu = 1 without flow)",
+      "confirmed": "exact",
+      "note": "From the reactions of the energy equation.",
+      "steps": []
+    },
+    {
+      "tier": 1,
+      "case": "Kovasznay flow, Re 40",
+      "quantity": "Velocity error (L2 norm) on the finest mesh",
+      "reference": 0.0,
+      "result": 0.00004536735725802338,
+      "error": 0.00004536735725802338,
+      "tolerance": 0.0001,
+      "absolute": true,
+      "pass": true,
+      "source": "Exact solution of Kovasznay (1948)",
+      "confirmed": "secondary sources",
+      "note": "Exact, but not a polynomial: the error is small, not round-off. The formula was checked for consistency (it satisfies continuity) and against later papers that quote it.",
+      "steps": []
+    },
+    {
+      "tier": 2,
+      "case": "Kovasznay flow, Re 40",
+      "quantity": "Observed order of accuracy: velocity (L2 norm)",
+      "reference": 3.0,
+      "result": 3.0028400155476227,
+      "error": 0.0028400155476226985,
+      "tolerance": 0.1,
+      "absolute": true,
+      "pass": true,
+      "source": "Exact solution of Kovasznay (1948); formal orders 3 and 2",
+      "confirmed": "exact",
+      "note": "An exact solution of the full equations. It is exponential, so it is checked by its rate of convergence rather than at round-off.",
+      "steps": [
+        [
+          0.125,
+          0.0029160463916675055
+        ],
+        [
+          0.0625,
+          0.00036365402459581013
+        ],
+        [
+          0.03125,
+          0.00004536735725802338
+        ]
+      ]
+    },
+    {
+      "tier": 2,
+      "case": "Kovasznay flow, Re 40",
+      "quantity": "Observed order of accuracy: pressure (L2 norm)",
+      "reference": 2.0,
+      "result": 2.04070358857751,
+      "error": 0.04070358857751,
+      "tolerance": 0.1,
+      "absolute": true,
+      "pass": true,
+      "source": "Exact solution of Kovasznay (1948); formal orders 3 and 2",
+      "confirmed": "exact",
+      "note": "An exact solution of the full equations. It is exponential, so it is checked by its rate of convergence rather than at round-off.",
+      "steps": [
+        [
+          0.125,
+          0.0024903332591541868
+        ],
+        [
+          0.0625,
+          0.0005363700150055056
+        ],
+        [
+          0.03125,
+          0.00013036214530751718
+        ]
+      ]
+    },
+    {
+      "tier": 2,
+      "case": "Manufactured solution: flow, heat and buoyancy",
+      "quantity": "Observed order of accuracy: velocity (L2 norm)",
+      "reference": 3.0,
+      "result": 2.9696989188717637,
+      "error": 0.030301081128236262,
+      "tolerance": 0.1,
+      "absolute": true,
+      "pass": true,
+      "source": "Method of manufactured solutions (Salari & Knupp 2000); formal orders 3, 2, 3",
+      "confirmed": "exact",
+      "note": "Regular meshes of the unit square, each half the size of the last; the order is taken from the two finest.",
+      "steps": [
+        [
+          0.125,
+          0.003640752203581964
+        ],
+        [
+          0.0625,
+          0.0004706876736571707
+        ],
+        [
+          0.03125,
+          0.00006008476577194356
+        ]
+      ]
+    },
+    {
+      "tier": 2,
+      "case": "Manufactured solution: flow, heat and buoyancy",
+      "quantity": "Observed order of accuracy: pressure (L2 norm)",
+      "reference": 2.0,
+      "result": 2.0374394068319934,
+      "error": 0.03743940683199343,
+      "tolerance": 0.1,
+      "absolute": true,
+      "pass": true,
+      "source": "Method of manufactured solutions (Salari & Knupp 2000); formal orders 3, 2, 3",
+      "confirmed": "exact",
+      "note": "Regular meshes of the unit square, each half the size of the last; the order is taken from the two finest.",
+      "steps": [
+        [
+          0.125,
+          0.010392276800440074
+        ],
+        [
+          0.0625,
+          0.00230307648646551
+        ],
+        [
+          0.03125,
+          0.0005610195371677757
+        ]
+      ]
+    },
+    {
+      "tier": 2,
+      "case": "Manufactured solution: flow, heat and buoyancy",
+      "quantity": "Observed order of accuracy: temperature (L2 norm)",
+      "reference": 3.0,
+      "result": 2.9884510365693586,
+      "error": 0.011548963430641379,
+      "tolerance": 0.1,
+      "absolute": true,
+      "pass": true,
+      "source": "Method of manufactured solutions (Salari & Knupp 2000); formal orders 3, 2, 3",
+      "confirmed": "exact",
+      "note": "Regular meshes of the unit square, each half the size of the last; the order is taken from the two finest.",
+      "steps": [
+        [
+          0.125,
+          0.0005724901687863036
+        ],
+        [
+          0.0625,
+          0.0000729522170187431
+        ],
+        [
+          0.03125,
+          9.192319102661524e-6
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Cylinder in a channel, Re 20",
+      "quantity": "Drag coefficient",
+      "reference": 5.57953523384,
+      "result": 5.579580520688441,
+      "error": 8.116598702774955e-6,
+      "tolerance": 0.0006299775333022541,
+      "absolute": false,
+      "pass": true,
+      "source": "Schäfer & Turek (1996), case 2D-1; reference values from the benchmark's results page",
+      "confirmed": "secondary sources",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 3.15e-4. Tolerance: twice that band. Coefficient = 2 F / (ρ U² D) with the mean inlet speed.",
+      "steps": [
+        [
+          0.017538253910204814,
+          5.5800784758474675
+        ],
+        [
+          0.01300472927384588,
+          5.579492640785253
+        ],
+        [
+          0.009451697276607796,
+          5.579580520688441
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Cylinder in a channel, Re 20",
+      "quantity": "Lift coefficient",
+      "reference": 0.010618948146,
+      "result": 0.010685137837800859,
+      "error": 0.006233168378903122,
+      "tolerance": 0.03899326127548442,
+      "absolute": false,
+      "pass": true,
+      "source": "Schäfer & Turek (1996), case 2D-1; reference values from the benchmark's results page",
+      "confirmed": "secondary sources",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 1.95e-2. Tolerance: twice that band. ",
+      "steps": [
+        [
+          0.017538253910204814,
+          0.010633439949145963
+        ],
+        [
+          0.01300472927384588,
+          0.010615696442555203
+        ],
+        [
+          0.009451697276607796,
+          0.010685137837800859
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Cylinder in a channel, Re 20",
+      "quantity": "Pressure difference, front to back of the cylinder (Pa)",
+      "reference": 0.11752016697,
+      "result": 0.1175060112683557,
+      "error": 0.00012045338267698023,
+      "tolerance": 0.0003708961153159532,
+      "absolute": false,
+      "pass": true,
+      "source": "Schäfer & Turek (1996), case 2D-1; reference values from the benchmark's results page",
+      "confirmed": "secondary sources",
+      "note": "Grid Convergence Index of the fine mesh 1.85e-4 (apparent order 13.43, extrapolated value 0.1174886). Tolerance: twice that band. ",
+      "steps": [
+        [
+          0.017538253910204814,
+          0.11838252085861241
+        ],
+        [
+          0.01300472927384588,
+          0.11752158140848408
+        ],
+        [
+          0.009451697276607796,
+          0.1175060112683557
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Cylinder in a channel, Re 20",
+      "quantity": "Net flow through all boundaries, over the flow in",
+      "reference": 0.0,
+      "result": 8.462065736472232e-16,
+      "error": 8.462065736472232e-16,
+      "tolerance": 1e-10,
+      "absolute": true,
+      "pass": true,
+      "source": "exact (mass is conserved)",
+      "confirmed": "exact",
+      "note": "On the fine mesh.",
+      "steps": []
+    },
+    {
+      "tier": 3,
+      "case": "Lid-driven cavity, Re 1000",
+      "quantity": "Stream function at the centre of the main eddy",
+      "reference": -0.1189366,
+      "result": -0.11893547394604911,
+      "error": 9.467682369342103e-6,
+      "tolerance": 0.0005461258953528697,
+      "absolute": false,
+      "pass": true,
+      "source": "Botella & Peyret (1998), spectral solution",
+      "confirmed": "secondary sources",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 2.73e-4. Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "steps": [
+        [
+          0.01768043231307192,
+          -0.11892785598095781
+        ],
+        [
+          0.012374948760083868,
+          -0.11893868160465748
+        ],
+        [
+          0.00887286647076172,
+          -0.11893547394604911
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Lid-driven cavity, Re 1000",
+      "quantity": "Main eddy centre, x",
+      "reference": 0.5308,
+      "result": 0.5308911463138799,
+      "error": 0.00009114631387985295,
+      "tolerance": 0.002,
+      "absolute": true,
+      "pass": true,
+      "source": "Botella & Peyret (1998), spectral solution",
+      "confirmed": "secondary sources",
+      "note": "Position on the fine mesh; tolerance 0.002 of the side (the reference gives four figures; the stream function is flat near its minimum).",
+      "steps": []
+    },
+    {
+      "tier": 3,
+      "case": "Lid-driven cavity, Re 1000",
+      "quantity": "Main eddy centre, y",
+      "reference": 0.5652,
+      "result": 0.5652679706052761,
+      "error": 0.00006797060527607979,
+      "tolerance": 0.002,
+      "absolute": true,
+      "pass": true,
+      "source": "Botella & Peyret (1998), spectral solution",
+      "confirmed": "secondary sources",
+      "note": "",
+      "steps": []
+    },
+    {
+      "tier": 3,
+      "case": "Lid-driven cavity, Re 1000",
+      "quantity": "u on the vertical centre line at y = 0.9531",
+      "reference": 0.4723329,
+      "result": 0.47232965032370533,
+      "error": 6.880054924545546e-6,
+      "tolerance": 0.0006728758089120974,
+      "absolute": false,
+      "pass": true,
+      "source": "Botella & Peyret (1998), spectral solution",
+      "confirmed": "secondary sources",
+      "note": "Grid Convergence Index of the fine mesh 3.36e-4 (apparent order 7.04, extrapolated value 0.4722025). Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "steps": [
+        [
+          0.01768043231307192,
+          0.47257265402159493
+        ],
+        [
+          0.012374948760083868,
+          0.4725474109807931
+        ],
+        [
+          0.00887286647076172,
+          0.47232965032370533
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Lid-driven cavity, Re 1000",
+      "quantity": "u on the vertical centre line at y = 0.5",
+      "reference": -0.0620561,
+      "result": -0.06205928817936383,
+      "error": 0.00005137576102640247,
+      "tolerance": 0.000258586993776215,
+      "absolute": false,
+      "pass": true,
+      "source": "Botella & Peyret (1998), spectral solution",
+      "confirmed": "secondary sources",
+      "note": "Grid Convergence Index of the fine mesh 1.29e-4 (apparent order 6.32, extrapolated value -0.06205287). Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "steps": [
+        [
+          0.01768043231307192,
+          -0.062177238681564474
+        ],
+        [
+          0.012374948760083868,
+          -0.06207028362312226
+        ],
+        [
+          0.00887286647076172,
+          -0.06205928817936383
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Lid-driven cavity, Re 1000",
+      "quantity": "u on the vertical centre line at y = 0.1719",
+      "reference": -0.3885691,
+      "result": -0.3885883795560342,
+      "error": 0.000049616801835765734,
+      "tolerance": 0.0007528000859902138,
+      "absolute": false,
+      "pass": true,
+      "source": "Botella & Peyret (1998), spectral solution",
+      "confirmed": "secondary sources",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 3.76e-4. Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "steps": [
+        [
+          0.01768043231307192,
+          -0.38854980251564175
+        ],
+        [
+          0.012374948760083868,
+          -0.3885396246617768
+        ],
+        [
+          0.00887286647076172,
+          -0.3885883795560342
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Lid-driven cavity, Re 1000",
+      "quantity": "v on the horizontal centre line at x = 0.9063",
+      "reference": -0.5264392,
+      "result": -0.5263847135061795,
+      "error": 0.00010350006956254252,
+      "tolerance": 0.00289962946047288,
+      "absolute": false,
+      "pass": true,
+      "source": "Botella & Peyret (1998), spectral solution",
+      "confirmed": "secondary sources",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 1.45e-3. Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "steps": [
+        [
+          0.01768043231307192,
+          -0.5265582058203236
+        ],
+        [
+          0.012374948760083868,
+          -0.5263038190498528
+        ],
+        [
+          0.00887286647076172,
+          -0.5263847135061795
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Lid-driven cavity, Re 1000",
+      "quantity": "v on the horizontal centre line at x = 0.5",
+      "reference": 0.0257995,
+      "result": 0.02579621457383762,
+      "error": 0.0001273445672349618,
+      "tolerance": 0.0023356094786757295,
+      "absolute": false,
+      "pass": true,
+      "source": "Botella & Peyret (1998), spectral solution",
+      "confirmed": "secondary sources",
+      "note": "Grid Convergence Index of the fine mesh 1.17e-3 (apparent order 8.24, extrapolated value 0.02582031). Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "steps": [
+        [
+          0.01768043231307192,
+          0.025751640531653127
+        ],
+        [
+          0.012374948760083868,
+          0.025754933070532476
+        ],
+        [
+          0.00887286647076172,
+          0.02579621457383762
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Lid-driven cavity, Re 1000",
+      "quantity": "v on the horizontal centre line at x = 0.1563",
+      "reference": 0.3769189,
+      "result": 0.37689537428105135,
+      "error": 0.0000624158643905813,
+      "tolerance": 0.0022943085291743984,
+      "absolute": false,
+      "pass": true,
+      "source": "Botella & Peyret (1998), spectral solution",
+      "confirmed": "secondary sources",
+      "note": "Grid Convergence Index of the fine mesh 1.15e-3 (apparent order 0.60, extrapolated value 0.3772413). Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "steps": [
+        [
+          0.01768043231307192,
+          0.376717310735628
+        ],
+        [
+          0.012374948760083868,
+          0.37681863254592807
+        ],
+        [
+          0.00887286647076172,
+          0.37689537428105135
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e3",
+      "quantity": "Average Nusselt number",
+      "reference": 1.118,
+      "result": 1.1177895530368365,
+      "error": 0.0001882352085542354,
+      "tolerance": 0.01,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), benchmark solution",
+      "confirmed": "secondary sources",
+      "note": "Grid Convergence Index of the fine mesh 3.47e-7 (apparent order 4.99, extrapolated value 1.11779). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow. He states his solution is accurate to better than 1% at the highest Rayleigh number.",
+      "steps": [
+        [
+          0.025880347068133497,
+          1.1177862172501227
+        ],
+        [
+          0.018685877318798397,
+          1.117788994503863
+        ],
+        [
+          0.013253464162752575,
+          1.1177895530368365
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e3",
+      "quantity": "Heat out through the cool wall, over heat in through the warm wall",
+      "reference": 1.0,
+      "result": 0.9999999837108879,
+      "error": 1.628911205919792e-8,
+      "tolerance": 0.0001,
+      "absolute": false,
+      "pass": true,
+      "source": "exact (energy is conserved)",
+      "confirmed": "exact",
+      "note": "On the fine mesh.",
+      "steps": []
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e4",
+      "quantity": "Average Nusselt number",
+      "reference": 2.243,
+      "result": 2.2448112193237795,
+      "error": 0.0008074985839409672,
+      "tolerance": 0.01,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), benchmark solution",
+      "confirmed": "secondary sources",
+      "note": "Grid Convergence Index of the fine mesh 3.81e-6 (apparent order 4.04, extrapolated value 2.244818). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow. He states his solution is accurate to better than 1% at the highest Rayleigh number.",
+      "steps": [
+        [
+          0.025880347068133497,
+          2.2447539876842724
+        ],
+        [
+          0.018685877318798397,
+          2.2447988752750763
+        ],
+        [
+          0.013253464162752575,
+          2.2448112193237795
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e4",
+      "quantity": "Heat out through the cool wall, over heat in through the warm wall",
+      "reference": 1.0,
+      "result": 0.9999998012748654,
+      "error": 1.9872513457031005e-7,
+      "tolerance": 0.0001,
+      "absolute": false,
+      "pass": true,
+      "source": "exact (energy is conserved)",
+      "confirmed": "exact",
+      "note": "On the fine mesh.",
+      "steps": []
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e5",
+      "quantity": "Average Nusselt number",
+      "reference": 4.519,
+      "result": 4.521582900049854,
+      "error": 0.0005715645164535561,
+      "tolerance": 0.01,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), benchmark solution",
+      "confirmed": "secondary sources",
+      "note": "Grid Convergence Index of the fine mesh 9.62e-6 (apparent order 6.12, extrapolated value 4.521618). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow. He states his solution is accurate to better than 1% at the highest Rayleigh number.",
+      "steps": [
+        [
+          0.025880347068133497,
+          4.521067118137752
+        ],
+        [
+          0.018685877318798397,
+          4.521520149300468
+        ],
+        [
+          0.013253464162752575,
+          4.521582900049854
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e5",
+      "quantity": "Heat out through the cool wall, over heat in through the warm wall",
+      "reference": 1.0,
+      "result": 0.9999997421148236,
+      "error": 2.578851764356571e-7,
+      "tolerance": 0.0001,
+      "absolute": false,
+      "pass": true,
+      "source": "exact (energy is conserved)",
+      "confirmed": "exact",
+      "note": "On the fine mesh.",
+      "steps": []
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e6",
+      "quantity": "Average Nusselt number",
+      "reference": 8.8,
+      "result": 8.825118053457388,
+      "error": 0.0028543242565212423,
+      "tolerance": 0.01,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), benchmark solution",
+      "confirmed": "secondary sources",
+      "note": "Grid Convergence Index of the fine mesh 2.05e-5 (apparent order 2.31, extrapolated value 8.825263). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow. He states his solution is accurate to better than 1% at the highest Rayleigh number.",
+      "steps": [
+        [
+          0.016000512024577297,
+          8.82468622178027
+        ],
+        [
+          0.011803159420437524,
+          8.824977125388466
+        ],
+        [
+          0.008791230023525283,
+          8.825118053457388
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e6",
+      "quantity": "Heat out through the cool wall, over heat in through the warm wall",
+      "reference": 1.0,
+      "result": 1.0000006262739047,
+      "error": 6.262739047357968e-7,
+      "tolerance": 0.0001,
+      "absolute": false,
+      "pass": true,
+      "source": "exact (energy is conserved)",
+      "confirmed": "exact",
+      "note": "On the fine mesh.",
+      "steps": []
+    }
+  ],
+  "not_verified": [
+    "Validation against experiment: for the backward-facing step of Armaly et al. (1983) Datum Flow computes reattachment at 2.85 step heights at Re 100, 4.87 step heights at Re 200, 8.00 step heights at Re 389. The measured lengths are given in a figure of the paper, which could not be opened while this record was made, so no verdict is given. Values quoted for it elsewhere are about 3, 5 and 8 step heights.",
+    "Reference values were keyed in from secondary sources (the benchmark authors' own code and results pages as quoted by others, and independent transcriptions that agree with each other), not read from the original papers. They are marked \"secondary sources\" until checked against the papers.",
+    "Flows that are turbulent, time-dependent, compressible or three-dimensional: this version does not solve them.",
+    "Symmetry and slip edges, heat-flux boundaries, moving walls other than a lid, and the light-oil and US-unit paths have unit tests but no benchmark row.",
+    "The Reynolds and Rayleigh limits of the turbulence warning are rules of thumb, not verified transition points.",
+    "Regression: this is the first record, so there is no earlier release to compare with. Later releases compare every value with this one."
+  ],
+  "seconds": 389.0,
+  "machine": "4 threads, linux x86_64"
+}

@@ -28,7 +28,7 @@ pub struct MeshView {
 
 /// One field at every node, in SI units.
 #[derive(Clone, Debug, Serialize)]
-pub struct FieldView {
+pub struct NodalField {
     pub id: String,
     pub name: &'static str,
     /// Kind of unit ("speed", "pressure", "temp", …).
@@ -214,13 +214,13 @@ impl Engine {
         Ok(p)
     }
     /// A field at every node. "stream" also brings the levels for `lines` streamlines.
-    pub fn field(&mut self, id: &str, lines: usize) -> R<FieldView> {
+    pub fn field(&mut self, id: &str, lines: usize) -> R<NodalField> {
         let psi = if id == "stream" { Some(self.psi()?) } else { None };
         let (mesh, r) = self.need()?;
         let (_, name, kind) = fields::FIELDS.iter().find(|f| f.0 == id).ok_or("That field does not exist.")?;
         let v = fields::nodal(mesh, &r.solved.state, id, psi.as_deref()).ok_or("This model has no temperature: turn heat on in Physics and solve again.")?;
         let [min, max] = fields::range(&v);
-        Ok(FieldView { id: id.into(), name, kind, levels: if id == "stream" { fields::stream_levels(&v, lines.clamp(1, 200)) } else { vec![] }, values: v.iter().map(|x| *x as f32).collect(), min, max })
+        Ok(NodalField { id: id.into(), name, kind, levels: if id == "stream" { fields::stream_levels(&v, lines.clamp(1, 200)) } else { vec![] }, values: v.iter().map(|x| *x as f32).collect(), min, max })
     }
     /// Velocity arrows on a grid of about `count` points: x, y, u, v.
     pub fn arrows(&self, m: &Model, count: usize) -> R<Vec<[f32; 4]>> {
@@ -372,5 +372,76 @@ mod tests {
         let m = examples::example("cavity-100").unwrap();
         let s = e.solve_now(&m, 3, &mut |_| false).unwrap();
         assert!(s.stopped && !s.converged && s.advice.is_empty());
+    }
+
+    fn solved(id: &str) -> (Model, Engine, Summary, f64) {
+        let m = examples::example(id).unwrap();
+        let mut e = Engine::default();
+        let t = std::time::Instant::now();
+        let s = e.solve_now(&m, 1, &mut |_| true).unwrap_or_else(|err| panic!("{id}: {err}"));
+        (m, e, s, t.elapsed().as_secs_f64())
+    }
+    fn conserves(id: &str, limit: f64, most_newton: usize) {
+        let (m, e, s, secs) = solved(id);
+        assert!(s.converged, "{id}: {}", s.message);
+        let rows = e.values(&m).unwrap();
+        let get = |name: &str| rows.iter().find(|r| r.name == name).map(|r| r.value).unwrap_or(f64::NAN);
+        let n = numbers(&m);
+        // Net flow against the flow in, or (a closed box) against speed × size.
+        let scale = get("Flow in").max(n.speed.max(get("Largest speed")) * n.length * 1e-3);
+        assert!(get("Net flow through all boundaries").abs() <= 1e-9 * scale, "{id}: net {} of {}", get("Net flow through all boundaries"), scale);
+        // Newton takes over after the Picard start and finishes in a few steps.
+        let newton = s.history.iter().filter(|h| h.kind == "Newton").count();
+        assert!(newton <= most_newton && s.stats.steps == 0, "{id}: {newton} Newton steps, {} continuation steps", s.stats.steps);
+        assert!(secs < limit, "{id} took {secs:.0} s");
+        eprintln!("{id}: {} unknowns, {} iterations ({newton} Newton), {secs:.1} s", s.stats.unknowns, s.history.len());
+    }
+
+    #[test]
+    fn examples_conserve_mass_and_converge_in_a_few_newton_steps() {
+        for id in ["channel", "cavity-100", "cylinder", "heated-1e4", "heatsink"] {
+            conserves(id, 120.0, 8);
+        }
+    }
+
+    #[test]
+    #[ignore = "the slower examples: run in release mode, nightly and before a release"]
+    fn every_example_solves_in_under_a_minute_and_conserves_mass() {
+        for (id, _, _) in examples::EXAMPLES {
+            // Ra 10⁶ needs damped Newton steps at first: more of them, still no continuation.
+            if id != "empty" { conserves(id, 60.0, if id == "heated-1e6" { 20 } else { 10 }); }
+        }
+    }
+
+    #[test]
+    #[ignore = "the speed gate: run in release mode, nightly and before a release"]
+    fn two_hundred_thousand_unknowns_solve_within_a_few_minutes() {
+        let mut m = examples::cavity(100.0);
+        m.mesh = MeshSettings { size: 0.0069, wall: 1.0, corner: 1.0, ..Default::default() };
+        let mut e = Engine::default();
+        let t = std::time::Instant::now();
+        let s = e.solve_now(&m, 1, &mut |_| true).unwrap();
+        let secs = t.elapsed().as_secs_f64();
+        eprintln!("speed gate: {} unknowns, {} iterations, {secs:.0} s", s.stats.unknowns, s.history.len());
+        assert!(s.converged && s.stats.unknowns >= 200_000, "{} unknowns: {}", s.stats.unknowns, s.message);
+        assert!(secs < 300.0, "{secs:.0} s");
+    }
+
+    #[test]
+    fn a_coarser_and_a_finer_mesh_agree_on_the_examples_numbers() {
+        // Mesh independence: halving the element size moves each example's key number only a little.
+        let key = |id: &str, factor: f64, name: &str| -> f64 {
+            let mut m = examples::example(id).unwrap();
+            m.mesh.size /= factor;
+            for r in &mut m.mesh.refine { r.size /= factor; }
+            let mut e = Engine::default();
+            assert!(e.solve_now(&m, 1, &mut |_| true).unwrap().converged);
+            e.values(&m).unwrap().iter().find(|r| r.name == name).unwrap_or_else(|| panic!("{name}")).value
+        };
+        for (id, name, within) in [("channel", "Pressure drop", 1e-9), ("cylinder", "Drag on the cylinder", 2e-3), ("heated-1e4", "Nusselt number, warm wall", 2e-3), ("heatsink", "Heat removed from the fin", 1e-2), ("heatsink", "Pressure drop", 1e-2)] {
+            let (coarse, fine) = (key(id, 0.7, name), key(id, 1.4, name));
+            assert!((coarse - fine).abs() <= within * fine.abs(), "{id} {name}: {coarse} on the coarse mesh, {fine} on the fine one");
+            eprintln!("{id} {name}: {coarse:.6e} → {fine:.6e} ({:.1e})", (coarse - fine).abs() / fine.abs());
+        }
     }
 }

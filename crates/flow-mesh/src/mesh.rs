@@ -690,4 +690,57 @@ mod tests {
         assert_eq!([0, 1, 2, 3].map(|e| g.edges.iter().filter(|x| x.edge == e).count()), [4, 2, 4, 2]);
         assert!(g.edges.iter().all(|e| e.boundary == 10 + e.edge));
     }
+
+    #[test]
+    fn hostile_and_random_drawings_never_panic() {
+        // A small generator (no extra crate): xorshift.
+        let mut seed = 0x2545_F491_4F6C_DD1Du64;
+        let mut next = move || { seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17; seed };
+        let mut f = move || (next() >> 11) as f64 / (1u64 << 53) as f64;
+        let (mut ok, mut refused) = (0, 0);
+        for round in 0..60 {
+            let mut m = Model::default();
+            let shapes = 1 + (f() * 4.0) as usize;
+            for i in 0..shapes {
+                let (x, y) = (f() * 3.0 - 0.5, f() * 3.0 - 0.5);
+                let geom = match (f() * 6.0) as usize {
+                    0 => Geom::Circle { c: [x, y], r: 10f64.powf(f() * 8.0 - 6.0) },
+                    1 => Geom::rect(x, y, x + 10f64.powf(f() * 6.0 - 4.0), y + f()),
+                    2 => Geom::Poly { pts: (0..3 + (f() * 6.0) as usize).map(|_| [f() * 2.0, f() * 2.0]).collect(), bulge: (0..9).map(|_| if f() < 0.3 { f() * 4.0 - 2.0 } else { 0.0 }).collect() },
+                    // Needle-thin, and touching another shape exactly along an edge.
+                    3 => Geom::rect(x, y, x + 1.0, y + 1e-7),
+                    4 => Geom::rect(1.0, 0.0, 2.0, 1.0),
+                    _ => Geom::rect(0.0, 0.0, 1.0, 1.0),
+                };
+                m.shapes.push(Shape { id: i as u32 + 1, name: format!("S{i}"), hole: i > 0 && f() < 0.4, geom, edges: vec![] });
+            }
+            m.mesh = MeshSettings { size: if f() < 0.3 { 10f64.powf(f() * 4.0 - 3.0) } else { 0.0 }, wall: 0.01 + f(), corner: 0.01 + f(), wake: 0.01 + f(), growth: 0.02 + f(), min_angle: 5.0 + f() * 28.0,
+                refine: if f() < 0.3 { vec![Refine { at: Target::Point { x: f() * 2.0, y: f() * 2.0 }, size: 10f64.powf(f() * 3.0 - 3.0) }, Refine { at: Target::Edge { shape: 1, edge: 77 }, size: 0.01 }, Refine { at: Target::Box { x0: 5.0, y0: 5.0, x1: -5.0, y1: -5.0 }, size: 0.05 }] } else { vec![] } };
+            m.normalize();
+            // Make it a through-flow now and then, so walls and wakes are refined too.
+            if round % 3 == 0 {
+                let edges = m.all_edges();
+                if edges.len() >= 3 {
+                    m.boundaries = vec![
+                        Boundary { id: 900, name: "In".into(), edges: vec![edges[0]], kind: BcKind::Inlet { speed: 1.0, profile: Profile::Uniform }, ..Default::default() },
+                        Boundary { id: 901, name: "Out".into(), edges: vec![edges[1]], kind: BcKind::Outlet { pressure: 0.0 }, ..Default::default() },
+                        Boundary { id: 902, name: "Walls".into(), edges: edges[2..].to_vec(), ..Default::default() },
+                    ];
+                }
+            }
+            match mesh(&m) {
+                Ok(g) => {
+                    sound(&g);
+                    let _ = crate::check(&m, Some(&g));
+                    ok += 1;
+                }
+                Err(e) => {
+                    assert!(!e.is_empty() && e.ends_with('.'), "{e}");
+                    let _ = crate::check(&m, None);
+                    refused += 1;
+                }
+            }
+        }
+        assert!(ok > 8 && refused > 2, "{ok} meshed, {refused} refused");
+    }
 }

@@ -57,6 +57,8 @@ jobs:
         run: |
           for i in 1 2 3 4; do npx tauri build --bundles nsis && exit 0; echo "Attempt $i failed; trying again"; sleep $((i * 45)); done
           exit 1
+      - name: The command-line tool
+        run: cargo build --release -p flow-cli
       - name: Installer and checksums
         shell: bash
         run: |

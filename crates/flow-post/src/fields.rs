@@ -136,3 +136,24 @@ pub fn range(v: &[f64]) -> [f64; 2] {
     let r = v.iter().filter(|x| x.is_finite()).fold([f64::INFINITY, f64::NEG_INFINITY], |r, x| [r[0].min(*x), r[1].max(*x)]);
     if r[0] > r[1] { [0.0, 0.0] } else { r }
 }
+
+/// The lowest (or highest) value of a nodal field anywhere on the mesh, not only at the nodes,
+/// and where it is: the elements round the extreme node are searched on a fine grid of their
+/// quadratic shape functions.
+pub fn extremum(mesh: &Mesh, v: &[f64], lowest: bool) -> (f64, [f64; 2]) {
+    let better = |a: f64, b: f64| if lowest { a < b } else { a > b };
+    let Some(node) = (0..v.len()).filter(|i| v[*i].is_finite()).reduce(|a, b| if better(v[b], v[a]) { b } else { a }) else { return (f64::NAN, [f64::NAN; 2]) };
+    let mut best = (v[node], mesh.nodes[node]);
+    const N: usize = 48;
+    for t in mesh.tris.iter().filter(|t| t.contains(&(node as u32))) {
+        let xy = t.map(|n| mesh.nodes[n as usize]);
+        for i in 0..=N {
+            for j in 0..=(N - i) {
+                let g = geo(&xy, i as f64 / N as f64, j as f64 / N as f64);
+                let val: f64 = (0..6).map(|a| g.n[a] * v[t[a] as usize]).sum();
+                if better(val, best.0) { best = (val, g.x); }
+            }
+        }
+    }
+    best
+}

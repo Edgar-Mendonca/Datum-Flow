@@ -1,6 +1,6 @@
 // Commands: one place for everything the ribbon, the shortcuts and Tell Me can run. Commands
 // whose engine part is not there yet go through `cmd(name)`, which says so in a toast.
-import { call, loadOut, out, setBackstage, setTab, setSel, setTool, setPickFor, setAsHole, toast, act, opts, saveOpts, setBottom, setBottomOpen, openDialog, closeDialog, setTheme, theme, tool, sel, asHole, Tab } from "./store";
+import { call, loadOut, out, setBackstage, setTab, setSel, setTool, setPickFor, setAsHole, toast, act, opts, saveOpts, setBottom, setBottomOpen, openDialog, closeDialog, setTheme, theme, tool, sel, asHole, Tab, running } from "./store";
 import { BcKind, Boundary, Out } from "./api";
 import { fit, zoomBy, viewPicture } from "./canvas";
 import { askYes } from "./ui";
@@ -12,22 +12,6 @@ export const SITE = "https://edgar-mendonca.github.io/Datum/apps/flow";
 /** The parts that arrive in the next 0.1.x releases. Each name is wired to the engine in one
  *  place: replace its entry here (or call the engine from `cmd`) when the part lands. */
 export const STUBS: Record<string, string> = {
-  mesh: "Generating the mesh",
-  mesh_quality: "The mesh quality report",
-  solve: "Solving",
-  stop: "Stopping a solve",
-  resume: "Resuming a solve",
-  check: "The checks before a solve",
-  field: "Results contours",
-  arrows: "Velocity arrows",
-  streamlines: "Streamlines",
-  probe: "Probes",
-  lineplot: "Line plots",
-  values: "Integrated values",
-  export_vtu: "VTU export",
-  export_csv: "CSV export",
-  report: "The PDF report",
-  verification: "The verification report",
   import_dxf: "DXF import",
 };
 /** Engine hooks: the main parts replace a stub by registering the real command here. */
@@ -56,8 +40,8 @@ export const C = {
   save: async (asNew = false) => { const o = await loadOut("save", { path: null, asNew }); if (o) toast(`Saved ${(o as Out).path}`, true); },
   print: () => setBackstage("print"),
   picture: async () => { const data = viewPicture(); if (!data) return toast("Open a model first."); const p = await call<string | null>("save_file", { name: `${out()?.m.name ?? "View"}.png`, data }); if (p) toast(`Saved ${p}`, true); },
-  undo: () => loadOut("undo"),
-  redo: () => loadOut("redo"),
+  undo: () => (running() ? toast("A solve is running: stop it before undoing.") : loadOut("undo")),
+  redo: () => (running() ? toast("A solve is running: stop it before redoing.") : loadOut("redo")),
   // geometry
   tool: (t: "select" | "pan" | "rect" | "circle" | "poly") => { setPickFor(null); setTool(tool() === t && t !== "select" ? "select" : t); },
   hole: (v: boolean) => setAsHole(v),
@@ -97,7 +81,10 @@ export const ALL_CMDS: [string, () => void, string?][] = [
   ["New inlet", C.inlet], ["New outlet", C.outlet], ["New wall", C.wall], ["New symmetry line", C.symmetry], ["Wall the rest", C.wallRest],
   ["Units: SI", () => C.units("SI")], ["Units: US", () => C.units("US")],
   ["Mesh settings", () => C.go("mesh", "mesh")], ["Generate the mesh", () => cmd("mesh")], ["Solver settings", () => C.go("solver", "solve")], ["Solve", () => cmd("solve")], ["Stop the solve", () => cmd("stop")],
-  ["Results", () => C.go("results", "results")], ["Checks before a solve", () => { C.panel("checks"); cmd("check"); }], ["Verification report", () => cmd("verification")],
+  ["Results", () => C.go("results", "results")], ["Resume the solve", () => cmd("resume")], ["Mesh quality", () => cmd("mesh_quality")],
+  ["Colour by speed", () => cmd("field", "speed")], ["Colour by pressure", () => cmd("field", "pressure")], ["Colour by temperature", () => cmd("field", "temperature")], ["Colour by vorticity", () => cmd("field", "vorticity")],
+  ["Streamlines on or off", () => cmd("streamlines")], ["Velocity arrows on or off", () => cmd("arrows")], ["Place a probe", () => cmd("probe")], ["Draw a plot line", () => cmd("lineplot")], ["Values: flow rate, pressure drop, forces, heat", () => cmd("values")],
+  ["PDF report", () => cmd("report")], ["Export VTU", () => cmd("export_vtu")], ["Export CSV", () => cmd("export_csv")], ["Checks before a solve", () => { C.panel("checks"); cmd("check"); }], ["Verification report", () => cmd("verification")],
   ["Fit the view", C.fit, "F"], ["Zoom in", C.zoomIn], ["Zoom out", C.zoomOut], ["Theme: next (Auto, Light, Dark)", C.theme],
   ["Residuals panel", () => C.panel("residuals")], ["Monitors panel", () => C.panel("monitors")], ["Checks panel", () => C.panel("checks")], ["Messages panel", () => C.panel("messages")],
   ["Save a picture of the view (PNG)", C.picture],

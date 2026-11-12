@@ -2,6 +2,7 @@
 //! `.dflow` file. Pure Rust, no I/O; the mesher, the solver and the results build on it.
 
 pub mod doc;
+pub mod dxf;
 pub mod examples;
 pub mod file;
 pub mod fluid;

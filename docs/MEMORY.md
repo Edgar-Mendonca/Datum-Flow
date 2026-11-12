@@ -71,8 +71,13 @@ flow-core ─▶ flow-mesh ─▶ flow-solve ─▶ flow-post ─▶ flow-verify
 | `crates/flow-post/src/locate.rs` | Finding the element that holds a point |
 | `crates/flow-post/src/values.rs` | Probes, line plots, arrows; flow rate, pressure drop, forces, heat flow, Nusselt number, mass and heat balance |
 | `crates/flow-post/src/export.rs` | VTU and CSV |
-| `crates/flow-verify/src/` | The verification cases, the Grid Convergence Index, the report |
-| `crates/flow-cli/` | Run a `.dflow` from the command line |
+| `crates/flow-core/src/dxf.rs` | Outlines from a DXF drawing: lines, arcs, circles, polylines |
+| `crates/flow-verify/src/cases.rs` | The verification cases: exact solutions, manufactured solution, Kovasznay, cylinder, cavity, heated cavity, step |
+| `crates/flow-verify/src/gci.rs` | The Grid Convergence Index (Celik et al. 2008) |
+| `crates/flow-verify/src/report.rs`, `report.json`, `src/bin/report.rs` | The record's shape, the record shipped with the app, and the program that runs every case and writes it with `docs/VERIFICATION.md` and `docs/verification/<version>.{md,json}` |
+| `crates/flow-verify/src/tests.rs` | The cases as tests; the full suite is `#[ignore]` (nightly and release) |
+| `crates/flow-cli/src/cli.rs`, `main.rs` | `flow-cli`: solve, check, mesh, example, verify from the command line |
+| `crates/flow-cli/examples/bridge.rs` | The UI tests' fixture and line-protocol bridge to the real engine |
 | `src-tauri/src/main.rs` | The shell: commands, `guard()`, atomic saves, recovery, options |
 | `src-tauri/src/update.rs`, `pdf.rs` | The updater (`REPO = "Edgar-Mendonca/Datum-Flow"`); writing PDFs |
 | `ui/src/store.ts`, `api.ts`, `cmds.ts` | State, the commands and their types, the command table (and the stubs not yet wired) |
@@ -123,6 +128,15 @@ Bump the version in the root `Cargo.toml`, add the CHANGELOG section, regenerate
 | 0.1.0 | **Kovasznay flow is checked by its convergence rate**, not at round-off | Its solution is exponential: no polynomial element is exact for it |
 | 0.1.0 | **The verification report is computed at release time and shipped** | The full suite takes minutes |
 | 0.1.0 | **One shared build budget:** CI on `main` and pull requests only, concurrency cancel, docs ignored; heavy work nightly and at release; no macOS | FAMILY §9 |
+| 0.1.1 | **One engine session (`flow_cli::Engine`) for the shell, the command line and the UI tests** | They cannot disagree; the UI tests drive the real mesher and solver through a line-protocol bridge |
+| 0.1.1 | **Solving runs on a worker thread as a `Job`** that owns copies of the model, mesh and start state; its results are kept only if the model has not changed meanwhile | The window stays live; Stop is a flag read after every iteration |
+| 0.1.1 | **Results live in memory, not in the `.dflow` file** | Examples solve in seconds; the file stays small and readable. Solve again after opening |
+| 0.1.1 | **Benchmark tolerance: twice the Grid Convergence Index of the fine mesh, or the reference's stated accuracy when wider; when the three meshes do not converge steadily, three times the largest change between meshes** | The brief's rule, made usable on unstructured meshes: the cylinder's drag is so accurate that mesh-to-mesh noise exceeds its error, and the index then has no order to stand on (the safety factor of 3 is the one recommended when the order is unknown) |
+| 0.1.1 | **The benchmark meshes are a coarser series than the examples'** (sizes ÷ 0.525, 0.79, 1.18 for the cylinder; ÷ 0.6, 0.9, 1.35 for the cavities) | Three refinements with ratio 1.5 that run in minutes; the error bands come from the data |
+| 0.1.1 | **de Vahl Davis's Nusselt numbers are compared within his stated 1%** | His 1983 values are less accurate than this solver at Ra 10⁶ (8.800 against 8.825, which later studies also find); the band says so instead of hiding it |
+| 0.1.1 | **The backward-facing step has no verdict** | Armaly's reattachment lengths are in a figure that could not be read; the computed lengths (2.85, 4.87, 8.00 step heights at Re 100, 200, 389) are reported under "Not verified" |
+| 0.1.1 | **The stream-function minimum is searched inside elements**, not only at nodes | The node value alone was 4e-5 short of the published cavity value |
+| 0.1.1 | **The brief's steps 2 to 6 ship as one release, 0.1.1** | They were finished together; the build budget says release in batches, and version numbers may not jump |
 | 0.1.0 | **The window shell was built by a parallel worker session from Datum Plan's shell**, with a bridge so UI tests drive the real engine | Speed; the engine and the shell meet only at `wire::Out` and `Op` |
 
 ## 3. Roadmap

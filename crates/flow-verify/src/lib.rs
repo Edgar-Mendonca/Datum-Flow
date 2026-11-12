@@ -4,8 +4,12 @@
 
 #![allow(clippy::needless_range_loop)]
 
+pub mod cases;
 pub mod gci;
 pub mod report;
 pub mod run;
+
+#[cfg(test)]
+mod tests;
 
 pub use run::{solve_model, Run};

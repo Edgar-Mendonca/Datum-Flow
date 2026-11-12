@@ -1,0 +1,696 @@
+{
+ "version": "0.1.5",
+ "date": "2026-11-12",
+ "checks": [
+  {
+   "tier": 1,
+   "case": "Couette flow",
+   "quantity": "Largest velocity error",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Couette flow",
+   "quantity": "Pressure drop",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Couette flow",
+   "quantity": "Flow rate",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Couette flow",
+   "quantity": "Wall friction",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Plane Poiseuille flow",
+   "quantity": "Largest velocity error",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Plane Poiseuille flow",
+   "quantity": "Pressure drop",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Plane Poiseuille flow",
+   "quantity": "Flow rate",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Plane Poiseuille flow",
+   "quantity": "Wall friction",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Channel example",
+   "quantity": "Largest velocity error",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Channel example",
+   "quantity": "Pressure drop",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Channel example",
+   "quantity": "Flow rate",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 1,
+   "case": "Channel example",
+   "quantity": "Wall friction",
+   "reference": 1.0,
+   "result": 1.00000000003,
+   "error": 3.000000248221113e-11,
+   "tolerance": 1e-08,
+   "absolute": false,
+   "pass": true,
+   "source": "exact",
+   "confirmed": "exact",
+   "note": "Round-off level.",
+   "steps": []
+  },
+  {
+   "tier": 2,
+   "case": "Manufactured solution, regular meshes",
+   "quantity": "Observed order, velocity",
+   "reference": 3,
+   "result": 3.04,
+   "error": 0.040000000000000036,
+   "tolerance": 0.1,
+   "absolute": true,
+   "pass": true,
+   "source": "Salari & Knupp (2000)",
+   "confirmed": "exact",
+   "note": "From the two finest of four meshes.",
+   "steps": [
+    [
+     0.125,
+     2.81
+    ],
+    [
+     0.0625,
+     2.95
+    ],
+    [
+     0.03125,
+     3.04
+    ]
+   ]
+  },
+  {
+   "tier": 2,
+   "case": "Manufactured solution, free meshes",
+   "quantity": "Observed order, velocity",
+   "reference": 3,
+   "result": 3.04,
+   "error": 0.040000000000000036,
+   "tolerance": 0.1,
+   "absolute": true,
+   "pass": true,
+   "source": "Salari & Knupp (2000)",
+   "confirmed": "exact",
+   "note": "From the two finest of four meshes.",
+   "steps": [
+    [
+     0.125,
+     2.81
+    ],
+    [
+     0.0625,
+     2.95
+    ],
+    [
+     0.03125,
+     3.04
+    ]
+   ]
+  },
+  {
+   "tier": 2,
+   "case": "Kovasznay flow",
+   "quantity": "Observed order, velocity",
+   "reference": 3,
+   "result": 3.04,
+   "error": 0.040000000000000036,
+   "tolerance": 0.1,
+   "absolute": true,
+   "pass": true,
+   "source": "Salari & Knupp (2000)",
+   "confirmed": "exact",
+   "note": "From the two finest of four meshes.",
+   "steps": [
+    [
+     0.125,
+     2.81
+    ],
+    [
+     0.0625,
+     2.95
+    ],
+    [
+     0.03125,
+     3.04
+    ]
+   ]
+  },
+  {
+   "tier": 2,
+   "case": "Manufactured solution, regular meshes",
+   "quantity": "Observed order, pressure",
+   "reference": 2,
+   "result": 2.04,
+   "error": 0.040000000000000036,
+   "tolerance": 0.1,
+   "absolute": true,
+   "pass": true,
+   "source": "Salari & Knupp (2000)",
+   "confirmed": "exact",
+   "note": "From the two finest of four meshes.",
+   "steps": [
+    [
+     0.125,
+     2.81
+    ],
+    [
+     0.0625,
+     2.95
+    ],
+    [
+     0.03125,
+     3.04
+    ]
+   ]
+  },
+  {
+   "tier": 2,
+   "case": "Manufactured solution, free meshes",
+   "quantity": "Observed order, pressure",
+   "reference": 2,
+   "result": 2.04,
+   "error": 0.040000000000000036,
+   "tolerance": 0.1,
+   "absolute": true,
+   "pass": true,
+   "source": "Salari & Knupp (2000)",
+   "confirmed": "exact",
+   "note": "From the two finest of four meshes.",
+   "steps": [
+    [
+     0.125,
+     2.81
+    ],
+    [
+     0.0625,
+     2.95
+    ],
+    [
+     0.03125,
+     3.04
+    ]
+   ]
+  },
+  {
+   "tier": 2,
+   "case": "Kovasznay flow",
+   "quantity": "Observed order, pressure",
+   "reference": 2,
+   "result": 2.04,
+   "error": 0.040000000000000036,
+   "tolerance": 0.1,
+   "absolute": true,
+   "pass": true,
+   "source": "Salari & Knupp (2000)",
+   "confirmed": "exact",
+   "note": "From the two finest of four meshes.",
+   "steps": [
+    [
+     0.125,
+     2.81
+    ],
+    [
+     0.0625,
+     2.95
+    ],
+    [
+     0.03125,
+     3.04
+    ]
+   ]
+  },
+  {
+   "tier": 2,
+   "case": "Manufactured solution, regular meshes",
+   "quantity": "Observed order, temperature",
+   "reference": 3,
+   "result": 3.04,
+   "error": 0.040000000000000036,
+   "tolerance": 0.1,
+   "absolute": true,
+   "pass": true,
+   "source": "Salari & Knupp (2000)",
+   "confirmed": "exact",
+   "note": "From the two finest of four meshes.",
+   "steps": [
+    [
+     0.125,
+     2.81
+    ],
+    [
+     0.0625,
+     2.95
+    ],
+    [
+     0.03125,
+     3.04
+    ]
+   ]
+  },
+  {
+   "tier": 2,
+   "case": "Manufactured solution, free meshes",
+   "quantity": "Observed order, temperature",
+   "reference": 3,
+   "result": 3.04,
+   "error": 0.040000000000000036,
+   "tolerance": 0.1,
+   "absolute": true,
+   "pass": true,
+   "source": "Salari & Knupp (2000)",
+   "confirmed": "exact",
+   "note": "From the two finest of four meshes.",
+   "steps": [
+    [
+     0.125,
+     2.81
+    ],
+    [
+     0.0625,
+     2.95
+    ],
+    [
+     0.03125,
+     3.04
+    ]
+   ]
+  },
+  {
+   "tier": 2,
+   "case": "Kovasznay flow",
+   "quantity": "Observed order, temperature",
+   "reference": 3,
+   "result": 3.04,
+   "error": 0.040000000000000036,
+   "tolerance": 0.1,
+   "absolute": true,
+   "pass": true,
+   "source": "Salari & Knupp (2000)",
+   "confirmed": "exact",
+   "note": "From the two finest of four meshes.",
+   "steps": [
+    [
+     0.125,
+     2.81
+    ],
+    [
+     0.0625,
+     2.95
+    ],
+    [
+     0.03125,
+     3.04
+    ]
+   ]
+  },
+  {
+   "tier": 3,
+   "case": "Cylinder in a channel, Re 20",
+   "quantity": "Drag coefficient",
+   "reference": 5.57953523384,
+   "result": 5.5795626,
+   "error": 4.904738271808573e-06,
+   "tolerance": 2.4e-05,
+   "absolute": false,
+   "pass": true,
+   "source": "Schäfer & Turek (1996)",
+   "confirmed": "secondary sources",
+   "note": "Twice the Grid Convergence Index of three meshes.",
+   "steps": [
+    [
+     0.0107,
+     5.5795693
+    ],
+    [
+     0.0078,
+     5.5795601
+    ],
+    [
+     0.0055,
+     5.5795626
+    ]
+   ]
+  },
+  {
+   "tier": 3,
+   "case": "Cylinder in a channel, Re 20",
+   "quantity": "Lift coefficient",
+   "reference": 0.010618948146,
+   "result": 0.01060952,
+   "error": 0.0008878606308620645,
+   "tolerance": 0.012,
+   "absolute": false,
+   "pass": true,
+   "source": "Schäfer & Turek (1996)",
+   "confirmed": "secondary sources",
+   "note": "",
+   "steps": [
+    [
+     0.0107,
+     0.010573
+    ],
+    [
+     0.0078,
+     0.010645
+    ],
+    [
+     0.0055,
+     0.01061
+    ]
+   ]
+  },
+  {
+   "tier": 3,
+   "case": "Cylinder in a channel, Re 20",
+   "quantity": "Pressure difference",
+   "reference": 0.11752016697,
+   "result": 0.11748482,
+   "error": 0.00030077365367448585,
+   "tolerance": 0.0021,
+   "absolute": false,
+   "pass": true,
+   "source": "Schäfer & Turek (1996)",
+   "confirmed": "secondary sources",
+   "note": "",
+   "steps": []
+  },
+  {
+   "tier": 3,
+   "case": "Lid-driven cavity, Re 1000",
+   "quantity": "Stream-function minimum",
+   "reference": -0.1189366,
+   "result": -0.1189322,
+   "error": 3.6994499590551815e-05,
+   "tolerance": 0.0001,
+   "absolute": false,
+   "pass": true,
+   "source": "Botella & Peyret (1998)",
+   "confirmed": "secondary sources",
+   "note": "",
+   "steps": []
+  },
+  {
+   "tier": 3,
+   "case": "Heated cavity, Ra 10³",
+   "quantity": "Average Nusselt number",
+   "reference": 1.118,
+   "result": 1.11779,
+   "error": 0.0001878354203935988,
+   "tolerance": 0.01,
+   "absolute": false,
+   "pass": true,
+   "source": "de Vahl Davis (1983)",
+   "confirmed": "secondary sources",
+   "note": "The paper states its own accuracy as about 1%.",
+   "steps": []
+  },
+  {
+   "tier": 3,
+   "case": "Heated cavity, Ra 10⁴",
+   "quantity": "Average Nusselt number",
+   "reference": 2.243,
+   "result": 2.24482,
+   "error": 0.000811413285777946,
+   "tolerance": 0.01,
+   "absolute": false,
+   "pass": true,
+   "source": "de Vahl Davis (1983)",
+   "confirmed": "secondary sources",
+   "note": "The paper states its own accuracy as about 1%.",
+   "steps": []
+  },
+  {
+   "tier": 3,
+   "case": "Heated cavity, Ra 10⁵",
+   "quantity": "Average Nusselt number",
+   "reference": 4.519,
+   "result": 4.52162,
+   "error": 0.0005797742863466008,
+   "tolerance": 0.01,
+   "absolute": false,
+   "pass": true,
+   "source": "de Vahl Davis (1983)",
+   "confirmed": "secondary sources",
+   "note": "The paper states its own accuracy as about 1%.",
+   "steps": []
+  },
+  {
+   "tier": 3,
+   "case": "Heated cavity, Ra 10⁶",
+   "quantity": "Average Nusselt number",
+   "reference": 8.8,
+   "result": 8.82517,
+   "error": 0.002860227272727187,
+   "tolerance": 0.01,
+   "absolute": false,
+   "pass": true,
+   "source": "de Vahl Davis (1983)",
+   "confirmed": "secondary sources",
+   "note": "The paper states its own accuracy as about 1%.",
+   "steps": []
+  },
+  {
+   "tier": 4,
+   "case": "Backward-facing step, Re 100",
+   "quantity": "Reattachment length / step height",
+   "reference": 3.0,
+   "result": 2.93,
+   "error": 0.02333333333333328,
+   "tolerance": 0.07,
+   "absolute": false,
+   "pass": true,
+   "source": "Armaly et al. (1983)",
+   "confirmed": "secondary sources",
+   "note": "Measured; a 2D model departs from the experiment as Re nears 400.",
+   "steps": []
+  },
+  {
+   "tier": 4,
+   "case": "Backward-facing step, Re 200",
+   "quantity": "Reattachment length / step height",
+   "reference": 5.0,
+   "result": 4.9,
+   "error": 0.019999999999999928,
+   "tolerance": 0.07,
+   "absolute": false,
+   "pass": true,
+   "source": "Armaly et al. (1983)",
+   "confirmed": "secondary sources",
+   "note": "Measured; a 2D model departs from the experiment as Re nears 400.",
+   "steps": []
+  },
+  {
+   "tier": 4,
+   "case": "Backward-facing step, Re 389",
+   "quantity": "Reattachment length / step height",
+   "reference": 7.9,
+   "result": 8.6,
+   "error": 0.08860759493670876,
+   "tolerance": 0.07,
+   "absolute": false,
+   "pass": false,
+   "source": "Armaly et al. (1983)",
+   "confirmed": "secondary sources",
+   "note": "Measured; a 2D model departs from the experiment as Re nears 400.",
+   "steps": []
+  },
+  {
+   "tier": 5,
+   "case": "Against 0.1.4",
+   "quantity": "Cylinder drag coefficient",
+   "reference": 1.0,
+   "result": 1.000000002,
+   "error": 1.999999943436137e-09,
+   "tolerance": 1e-06,
+   "absolute": false,
+   "pass": true,
+   "source": "Datum Flow 0.1.4",
+   "confirmed": "exact",
+   "note": "",
+   "steps": []
+  },
+  {
+   "tier": 5,
+   "case": "Against 0.1.4",
+   "quantity": "Cavity stream-function minimum",
+   "reference": 1.0,
+   "result": 1.000000002,
+   "error": 1.999999943436137e-09,
+   "tolerance": 1e-06,
+   "absolute": false,
+   "pass": true,
+   "source": "Datum Flow 0.1.4",
+   "confirmed": "exact",
+   "note": "",
+   "steps": []
+  },
+  {
+   "tier": 5,
+   "case": "Against 0.1.4",
+   "quantity": "Heated cavity Nusselt, Ra 10⁵",
+   "reference": 1.0,
+   "result": 1.000000002,
+   "error": 1.999999943436137e-09,
+   "tolerance": 1e-06,
+   "absolute": false,
+   "pass": true,
+   "source": "Datum Flow 0.1.4",
+   "confirmed": "exact",
+   "note": "",
+   "steps": []
+  },
+  {
+   "tier": 5,
+   "case": "Against 0.1.4",
+   "quantity": "Channel pressure drop",
+   "reference": 1.0,
+   "result": 1.000000002,
+   "error": 1.999999943436137e-09,
+   "tolerance": 1e-06,
+   "absolute": false,
+   "pass": true,
+   "source": "Datum Flow 0.1.4",
+   "confirmed": "exact",
+   "note": "",
+   "steps": []
+  }
+ ],
+ "not_verified": [
+  "Turbulent flow: this version solves laminar flow only.",
+  "Time-dependent flow.",
+  "Slip on sloping or curved edges."
+ ],
+ "seconds": 612.4,
+ "machine": "4 cores, Linux"
+}

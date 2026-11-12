@@ -37,6 +37,8 @@ export const HELP: Record<string, Topic> = {
     how: ["Size: the general triangle size (Auto picks a sensible one).", "Walls, Corners and Wake make the mesh finer where the flow changes fastest, as a share of the general size.", "Local sizes set the size on one edge, near a point or in a box."],
     tip: "Solve on two mesh sizes: if the numbers you care about barely change, the mesh is fine enough." },
   meshgen: { t: "Generate the mesh", what: "Makes the mesh from the drawing and the size settings, and reports its quality: how many triangles, the worst angle and how fast sizes change." },
+  meshquality: { t: "Mesh quality", what: "How good the triangles are. Thin triangles and sudden jumps in size make the answer less accurate and the solve harder.",
+    how: ["Smallest angle: above 30° is good, 20° to 30° fair, below 20° poor.", "Size ratio: how much two neighbouring elements differ in size; a few times is normal where the mesh is refined.", "Colour by quality paints every element green, amber or red in the view; Show zooms to one of the thinnest.", "To improve a poor place: a smaller size there (Local sizes), or a smaller general size."] },
   solve: { t: "Solve", what: "Works out the steady flow (and temperature) on the mesh. It repeats until the equations are satisfied: the residuals fall as it goes.",
     how: ["Solve starts; Stop ends it at once and keeps the last state; Resume carries on from there.", "The Residuals and Monitors panels at the bottom plot the progress."] },
   solversettings: { t: "Solver settings", what: "How long and how hard the solver tries.",
@@ -99,6 +101,10 @@ export const gettingStarted = () => openDialog(() => (
 ));
 
 export const GLOSSARY: [string, string][] = [
+  ["Grid Convergence Index", "A way to say how much an answer still depends on the mesh: solve on three meshes, each finer than the last, and see how the value changes. The index is an error band for the finest mesh (Celik and others, 2008). The verification report uses it."],
+  ["Mass balance", "What flows in must flow out. Datum Flow adds up the flow through every boundary; the sum should be next to nothing beside the flow coming in. It is listed under Results › Values."],
+  ["Newton iteration", "The fast way the solver closes in on the answer: each step uses how the equations change with the flow, so the error roughly squares every step. It needs a fair starting point, which a few Picard steps give."],
+  ["Stream function", "A quantity whose level lines are the streamlines. The difference between two lines is the flow passing between them."],
   ["Boundary condition", "What you tell the solver about an edge of the flow region: flow comes in here at this speed, leaves there, this is a wall. Every edge needs one."],
   ["Boussinesq approximation", "A way to model natural convection: the density is taken as constant except in the buoyancy force, which grows with the temperature difference. Good for small temperature differences."],
   ["Buoyancy", "Warm fluid is lighter and rises; cool fluid sinks. With Buoyancy on, temperature differences drive the flow."],
@@ -140,7 +146,7 @@ export const GLOSSARY: [string, string][] = [
 ];
 export const glossary = () => openDialog(() => {
   const [q, setQ] = createSignal("");
-  const list = () => GLOSSARY.filter(([t, d]) => (t + " " + d).toLowerCase().includes(q().toLowerCase()));
+  const list = () => [...GLOSSARY].sort((a, b) => a[0].localeCompare(b[0])).filter(([t, d]) => (t + " " + d).toLowerCase().includes(q().toLowerCase()));
   return (
     <Dialog title="Glossary" wide>
       <input class="gsearch" placeholder="Search the terms" value={q()} onInput={e => setQ(e.currentTarget.value)} />

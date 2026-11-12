@@ -2,5 +2,6 @@
 //! everything the window or the command line can ask of them. The desktop shell, the command-line
 //! tool and the window's tests all go through `Engine`, so they cannot disagree.
 
+pub mod cli;
 pub mod engine;
 pub use engine::{Engine, Job, Progress};

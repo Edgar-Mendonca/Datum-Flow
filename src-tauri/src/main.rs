@@ -303,7 +303,7 @@ fn summary(st: State<St>) -> Option<flow_cli::engine::Summary> {
 }
 
 #[tauri::command]
-async fn field(st: State<'_, St>, id: String, lines: Option<usize>) -> R<flow_cli::engine::FieldView> {
+async fn field(st: State<'_, St>, id: String, lines: Option<usize>) -> R<flow_cli::engine::NodalField> {
     let mut a = st.lock();
     guard(|| a.engine.field(&id, lines.unwrap_or(24)))
 }
@@ -348,6 +348,12 @@ async fn export_text(st: State<'_, St>, what: String, index: Option<usize>) -> R
         "line" => a.engine.line_csv(&a.doc.m, index.unwrap_or(0)),
         _ => Err("That export does not exist.".into()),
     })
+}
+
+/// The verification record shipped with this version (Help › Verification).
+#[tauri::command]
+fn verification() -> serde_json::Value {
+    serde_json::from_str(flow_verify::report::bundled()).unwrap_or(serde_json::Value::Null)
 }
 
 // ---------------------------------------------------------------- files
@@ -682,7 +688,7 @@ fn main() {
             }
         })
         .invoke_handler(tauri::generate_handler![
-            state, apply, undo, redo, new_doc, fluid_preset, mesh, mesh_view, check, solve_start, solve_stop, summary, field, arrows, probe, probes, line, values, export_text, open, save, save_file, save_pdf, options, set_options, autosave, recovery, recover, recent, startup_file, open_link, version, quit, check_update, install_update
+            state, apply, undo, redo, new_doc, fluid_preset, mesh, mesh_view, check, solve_start, solve_stop, summary, field, arrows, probe, probes, line, values, export_text, verification, open, save, save_file, save_pdf, options, set_options, autosave, recovery, recover, recent, startup_file, open_link, version, quit, check_update, install_update
         ])
         .run(tauri::generate_context!())
         .expect("Datum Flow failed to start");

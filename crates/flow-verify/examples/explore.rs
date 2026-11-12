@@ -17,7 +17,9 @@ fn main() {
             w if w.starts_with("heated") => examples::heated_cavity(w[6..].parse().unwrap_or(1e4)),
             _ => examples::channel(),
         };
-        let m = refined(&base, f);
+        let mut m = refined(&base, f);
+        if let Ok(t) = std::env::var("TOL") { m.solver.tol = t.parse().unwrap(); }
+        if let Ok(t) = std::env::var("CYL") { m.mesh.refine[0].size = t.parse().unwrap(); }
         match solve_model(&m) {
             Err(e) => println!("×{f}: FAILED {e}"),
             Ok(r) => {

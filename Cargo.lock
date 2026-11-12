@@ -1036,6 +1036,7 @@ dependencies = [
  "flow-mesh",
  "flow-post",
  "flow-solve",
+ "flow-verify",
  "serde",
  "serde_json",
 ]

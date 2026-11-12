@@ -91,8 +91,15 @@ export const loadOut = async (cmd: string, args?: object): Promise<Out | null | 
   if (o) setOut(o);
   return o;
 };
+/** A solve is running on the engine's worker thread. */
+export const [running, setRunning] = createSignal(false);
+/** Edits that leave the mesh and the results as they are; the others wait until a solve ends. */
+const LIGHT = ["set_view", "set_probes", "set_lines", "set_units", "set_name", "set_notes", "set_grid", "name_edge"];
 /** One edit of the model. True when it was applied. */
-export const act = async (op: Op): Promise<boolean> => !!(await loadOut("apply", { op }));
+export const act = async (op: Op): Promise<boolean> => {
+  if (running() && !LIGHT.includes(op.op)) { toast("A solve is running: stop it (Solve › Stop) before changing the model."); return false; }
+  return !!(await loadOut("apply", { op }));
+};
 
 // ---------- units: the engine works in SI; `out.units` says how each kind of quantity is shown
 export const unit = (kind: string) => out()?.units[kind] ?? { factor: 1, offset: 0, label: "" };

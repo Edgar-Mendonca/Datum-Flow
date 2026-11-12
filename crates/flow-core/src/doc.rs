@@ -15,6 +15,8 @@ pub enum Op {
     SetGrid { grid: f64 },
     /// Add a shape; its id is chosen here. `edges` may name the edges.
     AddShape { name: String, hole: bool, geom: Geom, #[serde(default)] edges: Vec<String> },
+    /// Add several shapes at once (an imported drawing): all or none.
+    AddShapes { shapes: Vec<(String, bool, Geom)> },
     /// Change a shape's outline (boundaries on edges that remain are kept).
     SetGeom { id: u32, geom: Geom },
     SetShape { id: u32, name: String, hole: bool },
@@ -122,6 +124,12 @@ fn edit(m: &mut Model, op: Op) -> Result<(), String> {
             let mut e: Vec<String> = edges.iter().map(|x| name(x)).collect();
             e.resize(geom.edges(), String::new());
             m.shapes.push(Shape { id, name: n, hole, geom, edges: e });
+        }
+        Op::AddShapes { shapes } => {
+            if shapes.is_empty() { return Err("There is nothing to add.".into()); }
+            for (n, hole, geom) in shapes {
+                edit(m, Op::AddShape { name: n, hole, geom, edges: vec![] })?;
+            }
         }
         Op::SetGeom { id, geom } => {
             if let Some(p) = geom.problem() { return Err(format!("This shape cannot be used: {p}.")); }

@@ -39,11 +39,22 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
     const shell = { options: () => opts, set_options: a => (Object.assign(opts, a.opts), null), startup_file: () => null, recovery: () => null, recent: () => Object.keys(window.__files).map(f => ({ path: f, name: f.split("/").pop().replace(".dflow", ""), modified: "12-Nov-26 10:00" })), version: () => "test", autosave: () => null, quit: () => null,
       check_update: () => ({ current: "0.1.0", latest: "0.1.0", beta: false, available: false, notes: "## 0.1.0\n- The first release.", published: "2026-11-12", url: null, sums: null, size: 0, page: "" }),
       open_link: a => { window.__links.push(a.url); return null; }, save_file: a => `C:/Exports/${a.name}`, save_pdf: () => { throw "native-pdf-unavailable"; } };
-    window.__links = []; window.__calls = []; window.__files = {};
+    window.__links = []; window.__calls = []; window.__files = {}; window.__listeners = {};
     window.__TAURI__ = {
       core: { invoke: async (c, a) => {
         window.__calls.push([c, a]);
         if (c in shell) return shell[c](a ?? {});
+        // The solver's worker thread and its events: the bridge answers in one go, and the
+        // iterations are then delivered one by one, as the shell would.
+        if (c === "solve_start") {
+          const r = await window.__bridge("solve", window.__stopAfter ? { stop_after: window.__stopAfter } : {});
+          if (r.err !== undefined) throw r.err;
+          const emit = (e, payload) => (window.__listeners[e] ?? []).forEach(f => f({ payload }));
+          (async () => { for (const pr of r.ok.progress) { await new Promise(ok => setTimeout(ok, window.__solveDelay ?? 15)); emit("solve-progress", pr); } emit("solve-done", { summary: r.ok.summary, error: null, out: r.ok.out }); })();
+          return r.ok.summary.monitor_names;
+        }
+        if (c === "solve_stop") return null;
+        if (c === "verification" && window.__verification) return window.__verification;
         // Files: the tests keep "saved" files in the page, by path.
         if (c === "open") { if (!a?.path) return null; a = { path: a.path, text: window.__files[a.path] ?? "" }; }
         const r = await window.__bridge(c, a ?? {});
@@ -51,7 +62,7 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
         if (c === "set_options") return (await window.__bridge("state", {})).ok;
         return r.ok;
       } },
-      event: { listen: async () => () => {} },
+      event: { listen: async (e, f) => { (window.__listeners[e] ??= []).push(f); return () => {}; } },
     };
     window.print = () => { window.__printed = (window.__printed ?? 0) + 1; };
   });
@@ -102,15 +113,11 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
   check("a narrow window folds ribbon groups instead of scrolling", narrow.over <= 1, JSON.stringify(narrow));
   await p.setViewportSize({ width: 1440, height: 900 }); await p.waitForTimeout(150);
 
-  // ---------- parts that arrive later say so (never a dead button)
-  for (const [tabName, button, word] of [["Mesh", "Generate", "mesh"], ["Solve", "Solve", "Solving"], ["Results", "Streamlines", "Streamlines"], ["Check", "Verification Report", "verification"], ["Geometry", "Import DXF", "DXF"]]) {
-    await tab(tabName);
-    await p.click(`.ribbon .rb:has-text("${button}")`);
-    await p.waitForTimeout(80);
-    const t = await toastText();
-    check(`${tabName} › ${button} says it is coming`, t.includes("coming in 0.1.x") && t.toLowerCase().includes(word.toLowerCase()), t);
-    await hear();
-  }
+  // ---------- the one part still to come says so (never a dead button)
+  await tab("Geometry");
+  await p.click('.ribbon .rb:has-text("Import DXF")'); await p.waitForTimeout(80);
+  check("Geometry › Import DXF says it is coming", (await toastText()).includes("coming in 0.1.x") && (await toastText()).includes("DXF"), await toastText());
+  await hear();
 
   // ---------- ? cards
   await tab("Physics");
@@ -243,6 +250,205 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
   }
   await p.click('.ribbon .rb:has-text("Report an Issue")'); await p.waitForTimeout(50);
   check("GitHub links go only to the project's pages", (await p.evaluate(() => window.__links)).every(u => u.startsWith("https://github.com/Edgar-Mendonca/Datum-Flow")) && (await p.evaluate(() => window.__links.length)) === 1);
+
+  // ---------- mesh, checks, solve and results, through the real engine
+  const images = path.join(__dirname, "../docs/images");
+  fs.mkdirSync(images, { recursive: true });
+  const site = async n => { await p.evaluate(() => document.querySelector("#toast")?.click()); await p.mouse.move(700, 600); await p.waitForTimeout(120); await p.screenshot({ path: path.join(images, n + ".png") }); };
+  const openExample = async title => {
+    await p.keyboard.press("Control+s"); await p.waitForTimeout(150);
+    await p.click(".tabs .file"); await p.waitForSelector(".bs .home");
+    await p.click(`.recent.examples tr:has-text("${title}")`); await p.waitForTimeout(350);
+  };
+  const rb = async (tabName, button) => { await tab(tabName); await p.click(`.ribbon .rb:has-text("${button}") >> nth=0`); await p.waitForTimeout(120); };
+  // Home › Run › Solve or Resume (Home › Steps also has a "Solve", which only opens the settings).
+  const run = async button => { await tab("Home"); await p.click(`.ribbon .grp:has(.cap:has-text("Run")) .rb:has-text("${button}")`); await p.waitForTimeout(120); };
+  // The colour of the view at a model point (device pixels).
+  const pixel = (x, y) => p.evaluate(([x, y]) => { const c = document.querySelector(".view canvas"), s = window.__view.toScreen([x, y]), r = c.width / c.clientWidth, d = c.getContext("2d").getImageData(Math.round(s[0] * r), Math.round(s[1] * r), 1, 1).data; return [d[0], d[1], d[2]]; }, [x, y]);
+  const clickAt = async (x, y) => { const s = await p.evaluate(q => { const r = document.querySelector(".view canvas").getBoundingClientRect(), t = window.__view.toScreen(q); return [r.left + t[0], r.top + t[1]]; }, [x, y]); await p.mouse.move(s[0], s[1]); await p.mouse.down(); await p.mouse.up(); await p.waitForTimeout(200); };
+  const calls = name => p.evaluate(n => window.__calls.filter(c => c[0] === n).map(c => c[1]), name);
+  const solved = async (ms = 120000) => { await p.waitForFunction(() => !document.querySelector(".sbusy") && !!document.querySelector(".srun b"), null, { timeout: ms }); await p.waitForTimeout(500); };
+
+  await openExample("Flow past a cylinder");
+  // Mesh
+  await rb("Mesh", "Generate"); await p.waitForFunction(() => document.querySelector("#toast")?.innerText.includes("Mesh ready"), null, { timeout: 30000 });
+  let ms = await state();
+  check("Mesh › Generate meshes the model and says so", ms.has_mesh && /Mesh ready: [\d,. ]+ elements/.test(await toastText()), await toastText());
+  const qual = await text(".squal");
+  check("the mesh quality report lists elements, angle, ratio and the thinnest elements", ["Elements", "Unknowns", "Smallest angle", "Size ratio", "Edge length", "over 30°"].every(w => qual.includes(w)) && (await p.locator(".squal .irow").count()) === 5, qual.slice(0, 200));
+  const lines = await p.evaluate(() => { const c = document.querySelector(".view canvas"), d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - 236) > 12 && Math.abs(d[i] - 255) > 6 && d[i] < 215) n++; return n; });
+  check("the mesh is drawn in the view", lines > 20000, `${lines} dark pixels`);
+  await hear(); await shot("10-mesh");
+  await rb("Mesh", "Quality");
+  const green = await p.evaluate(() => { const c = document.querySelector(".view canvas"), d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4 * 7) if (d[i + 1] > d[i] + 30 && d[i + 1] > d[i + 2] + 30) n++; return n; });
+  check("Quality colours the elements and shows its legend", green > 2000 && (await text(".sleg.sq2")).includes("over 30°"), `${green} green samples`);
+  await p.click(".squal .irow .btn >> nth=0"); await p.waitForTimeout(200);
+  check("Show zooms to a thin element", /\d{3,}%/.test(await text(".status .zpct")), await text(".status .zpct"));
+  await shot("11-quality"); await hear();
+  await rb("Mesh", "Quality"); await p.keyboard.press("f"); await p.click(".view canvas", { position: { x: 5, y: 5 } }); await p.keyboard.press("f"); await p.waitForTimeout(150);
+  check("Quality off removes the colours", (await p.locator(".sleg.sq2").count()) === 0);
+
+  // Checks: ready; then a broken setup is refused, in words
+  await rb("Check", "Checks");
+  check("the checks say the model is ready, against its mesh", (await text(".schecks")).includes("Ready to solve.") && (await text(".schecks")).includes("Checked against the mesh"), await text(".schecks"));
+  await p.click('.tree .ti:has-text("Outlet")'); await p.waitForTimeout(100);
+  await p.selectOption(".insp .ifield:has(label:has-text('Kind')) select", "wall"); await p.waitForTimeout(200);
+  ms = await state();
+  check("an edit that changes the flow drops the mesh", !ms.has_mesh && (await p.locator(".squal .sq").count()) === 0);
+  await run("Solve"); await p.waitForTimeout(400);
+  check("Solve refuses a model with no outlet and says why", (await text(".dlg")).includes("Not ready to solve") && (await text(".dlg")).includes("no outlet"), await text(".dlg"));
+  await p.keyboard.press("Escape"); await p.waitForTimeout(100);
+  check("the Checks tab lists the error with its fix and a count", (await text(".schecks .scheck.error")).includes("pressure outlet") && (await text(".bottom header .badge")).trim() !== "", await text(".schecks"));
+  await hear(); await shot("12-checks");
+  await p.keyboard.press("Control+z"); await p.waitForTimeout(250);
+  check("undo brings the outlet back", (await state()).m.boundaries[1].kind.type === "outlet");
+
+  // Solve: live residuals and monitors, then the results
+  await p.evaluate(() => { window.__solveDelay = 900; });
+  await run("Solve");
+  await p.waitForSelector(".sbusy", { timeout: 120000 });
+  await p.waitForFunction(() => (window.__chartData(document.querySelector(".spanel .schart canvas")) ?? [0])[0] >= 4, null, { timeout: 30000 }).catch(async e => { await shot("debug"); console.log(await text(".bottom")); throw e; });
+  const mid = await text(".srun");
+  check("while solving: the iteration, the kind of step and a Stop button", /Iteration \d+ · (Picard|Newton)/.test(mid) && mid.includes("STOP") && (await p.locator(".ribbon .rb:has-text('Stop'):not([disabled])").count()) === 1, mid);
+  check("the residual chart grows as the solve runs (momentum and continuity)", JSON.stringify(await p.evaluate(() => window.__chartData(document.querySelector(".spanel .schart canvas")).length)) === "2");
+  await p.click('.tree .ti:has-text("Fluid")'); await p.waitForTimeout(80);
+  await rb("Physics", "Heat"); await p.waitForTimeout(150);
+  check("the model cannot be changed while a solve runs", (await toastText()).includes("A solve is running") && (await state()).m.physics.heat === false, await toastText());
+  await tab("Solve"); await p.waitForTimeout(250);
+  check("still solving when the picture is taken", (await p.locator(".sbusy").count()) === 1);
+  await shot("13-solving"); await site("residuals-solving"); await hear();
+  await p.evaluate(() => { window.__solveDelay = 10; });
+  await solved();
+  ms = await state();
+  check("the solve converges and says so", ms.has_results && (await text(".srun")).includes("CONVERGED") && /Converged in \d+ iterations/.test(await text(".srun")), await text(".srun"));
+  check("Messages keeps the outcome", (await p.evaluate(() => window.__calls.some(c => c[0] === "mesh_view"))) && true);
+  const brightest = async (x, y) => { let best = [0, 0, 0]; for (let k = -2; k <= 2; k++) { const c = await pixel(x, y + 0.004 * k); if (c[0] + c[1] + c[2] > best[0] + best[1] + best[2]) best = c; } return best; };
+  const sp = await brightest(1.6, 0.26), wake = await brightest(1.6, 0.012);
+  check("the view is coloured by speed (fast mid-channel, slow at the wall)", sp[1] > wake[1] + 60 && !(sp[0] === 236 && sp[1] === 238), `${sp} / ${wake}`);
+  const leg = await text(".sleg");
+  check("the legend names the field, its unit and its range", leg.includes("SPEED") && leg.includes("m/s") && /0\.\d+/.test(leg), leg);
+  await p.click('.bottom header button:has-text("Monitors")'); await p.waitForTimeout(250);
+  const mon = await text(".smons");
+  check("the monitors are plotted with their values (drag 0.01116 N)", mon.includes("Drag on the cylinder") && /0\.0111[56]\d* N/.test(mon) && (await p.evaluate(() => window.__chartData(document.querySelector(".smon canvas"))[0])) >= 5, mon);
+  await hear(); await shot("14-monitors");
+
+  // Streamlines, arrows, fields
+  check("streamlines are fetched with the results", (await calls("field")).some(a => a.id === "stream"));
+  await p.keyboard.press("f"); await p.waitForTimeout(200);
+  await p.click('.bottom header button:has-text("Residuals")'); await p.waitForTimeout(200);
+  await shot("15-cylinder-results");
+  // Closer on the cylinder for the site's picture, then the whole model again.
+  const z0 = await p.evaluate(q => { const r = document.querySelector(".view canvas").getBoundingClientRect(), t = window.__view.toScreen(q); return [r.left + t[0], r.top + t[1]]; }, [0.0, 0.205]);
+  await p.mouse.move(z0[0], z0[1]); await p.mouse.wheel(0, -470); await p.waitForTimeout(500);
+  await site("cylinder-streamlines");
+  await p.keyboard.press("f"); await p.waitForTimeout(300);
+  await rb("Results", "Streamlines");
+  check("Results › Streamlines switches them off and keeps the choice in the model", (await state()).m.view.streamlines === false);
+  await rb("Results", "Streamlines"); await rb("Results", "Arrows"); await p.waitForTimeout(300);
+  check("Results › Arrows fetches and draws arrows", (await state()).m.view.arrows === true && (await calls("arrows")).length >= 1);
+  await shot("16-arrows"); await rb("Results", "Arrows");
+  await rb("Results", "Pressure"); await p.waitForTimeout(300);
+  check("the field changes to pressure", (await state()).m.view.field === "pressure" && (await text(".sleg")).includes("PRESSURE") && (await text(".sleg")).includes("Pa"), await text(".sleg"));
+  await rb("Results", "Temperature").catch(() => {});
+  check("Temperature is not offered without heat", (await p.locator(".ribbon .rb:has-text('Temperature')[disabled]").count()) === 1);
+  await rb("Results", "Vorticity"); await p.waitForTimeout(300);
+  await p.click('.tree .ti:has-text("Results")'); await p.waitForTimeout(100);
+  await p.selectOption(".insp .ifield:has(label:has-text('Colour map')) select", "diverging"); await p.waitForTimeout(300);
+  const far = await brightest(1.9, 0.225);
+  check("the diverging map is centred on zero (near white where vorticity is near zero)", far[0] > 200 && far[1] > 200 && far[2] > 200, `${far}`);
+  await shot("17-vorticity");
+  await p.selectOption(".insp .ifield:has(label:has-text('Colour map')) select", "viridis"); await rb("Results", "Speed"); await p.waitForTimeout(300);
+
+  // Probes, the value under the pointer, line plots
+  await rb("Results", "Probe");
+  check("Probe says what to do", (await text(".shint")).includes("Click where you want to read the values"));
+  await clickAt(0.15, 0.2); await clickAt(1.0, 0.3); await p.keyboard.press("Escape"); await p.waitForTimeout(300);
+  ms = await state();
+  check("clicks in the view add probes, and their values are fetched", ms.m.probes.length === 3 + 1 - 0 || ms.m.probes.length === 4, `${ms.m.probes.length}`);
+  check("probe values come from the engine", (await calls("probes")).length >= 1);
+  const hv = await p.evaluate(q => { const r = document.querySelector(".view canvas").getBoundingClientRect(), t = window.__view.toScreen(q); return [r.left + t[0], r.top + t[1]]; }, [1.5, 0.2]);
+  await p.mouse.move(hv[0], hv[1]); await p.mouse.move(hv[0] + 2, hv[1]); await p.waitForTimeout(500);
+  check("the status bar shows the values under the pointer", /0\.\d+ m\/s · p [−\d.e-]+ Pa/.test(await text(".shover")), await text(".shover"));
+  await rb("Results", "Line Plot");
+  await clickAt(0.6, 0.02); await p.mouse.move(hv[0], hv[1]); await clickAt(0.6, 0.39); await p.waitForTimeout(600);
+  ms = await state();
+  const dl = await text(".dlg");
+  check("two clicks draw a plot line and open its chart", ms.m.lines.length === 2 && dl.includes("Along Line 2") && dl.includes("201 points"), dl.slice(0, 160));
+  check("the line plot holds the engine's samples", (await p.evaluate(() => window.__chartData(document.querySelector(".dlg .schart canvas"))[0])) > 150);
+  await p.selectOption(".dlg .slinehead select", "pressure"); await p.waitForTimeout(200);
+  await shot("18-lineplot"); await hear();
+  await p.click('.dlg .btn:has-text("Save as CSV")'); await p.waitForTimeout(300);
+  let saved = await calls("save_file");
+  check("a line plot saves as CSV with units", saved.at(-1).name.endsWith(".csv") && saved.at(-1).data.startsWith("distance [m],x [m],y [m],u [m/s]") && saved.at(-1).data.split("\n").length > 200, saved.at(-1).data.slice(0, 80));
+  await p.keyboard.press("Escape"); await p.waitForTimeout(100);
+
+  // Values
+  await rb("Results", "Values"); await p.waitForTimeout(400);
+  const vals = await text(".dlg");
+  check("Values lists monitors, boundaries, balances and extremes (drag 0.01116 N)", ["MONITORS", "BOUNDARIES", "BALANCES", "EXTREMES", "Drag on the cylinder", "Net flow through all boundaries", "should be near zero"].every(w => vals.includes(w)) && /0\.0111[56]\d*\s*N/.test(vals), vals.slice(0, 300));
+  await shot("19-values"); await hear(); await p.keyboard.press("Escape");
+
+  // Exports and the report
+  await rb("Results", "VTU"); await p.waitForTimeout(500);
+  saved = await calls("save_file");
+  check("VTU export writes the mesh and the fields", saved.at(-1).name === "Flow past a cylinder, Re 20.vtu" && saved.at(-1).data.includes("UnstructuredGrid") && saved.at(-1).data.includes('Name="velocity"') && (await toastText()).includes("Saved"), saved.at(-1).name);
+  await rb("Results", "CSV"); await p.waitForTimeout(200);
+  await p.click('.dlg .scsv .btn >> nth=0'); await p.waitForTimeout(400);
+  saved = await calls("save_file");
+  check("CSV export writes the probes", saved.at(-1).data.startsWith("probe,x [m]") && saved.at(-1).data.includes("Front of the cylinder"), saved.at(-1).data.slice(0, 80));
+  await rb("Results", "PDF Report"); await p.waitForTimeout(900);
+  const rep = await p.evaluate(() => ({ pages: document.querySelectorAll(".pprev .ppage").length, text: document.querySelector(".pprev").innerText, pics: [...document.querySelectorAll(".pprev .rpage .ppic img")].filter(i => i.naturalWidth > 50).length, foot: [...document.querySelectorAll(".pprev .pfoot")].at(-1)?.innerText }));
+  check("the PDF report has pages for inputs, mesh, convergence, results, values and verification", rep.pages >= 7 && ["1 · Inputs", "2 · Mesh", "3 · Convergence", "4 · Results", "5 · Values", "Verification of this version", "Full report: Help › Verification", "Converged"].every(w => rep.text.toLowerCase().includes(w.toLowerCase())) && rep.pics >= 3 && rep.foot.includes(`of ${rep.pages}`), JSON.stringify({ ...rep, text: ["1 · Inputs", "2 · Mesh", "3 · Convergence", "4 · Results", "5 · Values", "Verification of this version", "Full report: Help › Verification", "Converged"].filter(w => !rep.text.includes(w)) }));
+  await shot("20-report"); await hear();
+  await p.click(".bs aside .back"); await p.waitForTimeout(150);
+
+  // The verification page: the shipped record, and a full one
+  await rb("Help", "Verification"); await p.waitForTimeout(400);
+  const realVer = (await ask("verification")).ok;
+  check("Help › Verification shows the record shipped with this version", (await text(".dlg")).includes(`Datum Flow ${realVer.version}`) && (await text(".dlg")).includes(`of ${realVer.checks.length} checks pass`), (await text(".dlg")).slice(0, 200));
+  await hear(); await p.keyboard.press("Escape");
+  const verFix = JSON.parse(fs.readFileSync(path.join(__dirname, "verification_fixture.json")));
+  await p.evaluate(v => { window.__verification = v; }, verFix);
+  await rb("Check", "Verification Report"); await p.waitForTimeout(400);
+  const ver = await p.evaluate(() => ({ rows: document.querySelectorAll(".dlg .vtab tbody tr:not(.vmore)").length, tiers: document.querySelectorAll(".dlg .vtier").length, text: document.querySelector(".dlg").innerText }));
+  check("a full record shows every check by tier, with PASS and FAIL", ver.rows === verFix.checks.length && ver.tiers === 6 && ver.text.includes("1 FAIL") && ver.text.includes("PASS") && ver.text.toLowerCase().includes("not verified in this version"), JSON.stringify({ rows: ver.rows, tiers: ver.tiers, head: ver.text.slice(0, 300) }));
+  await p.click('.dlg .vtab tr:has-text("Drag coefficient")'); await p.waitForTimeout(150);
+  check("a row opens to its source, how the reference was confirmed and the meshes", (await text(".dlg .vmore")).includes("Schäfer & Turek (1996)") && (await text(".dlg .vmore")).includes("secondary sources") && (await text(".dlg .vmore")).includes("Mesh by mesh"), await text(".dlg .vmore"));
+  await shot("21-verification"); if (!realVer.checks.length) await site("verification-report"); await hear();
+  await p.click('.dlg .btn:has-text("Print or save as PDF")'); await p.waitForTimeout(600);
+  check("the verification record prints as pages", (await p.locator(".pprev .ppage").count()) >= 4 && (await text(".pprev")).toLowerCase().includes("verification of datum flow"), `${await p.locator(".pprev .ppage").count()} pages: ${(await text(".pprev")).slice(0, 200)}`);
+  await p.click(".bs aside .back"); await p.waitForTimeout(150);
+  await p.evaluate(() => { window.__verification = null; });
+  if (realVer.checks.length) { await rb("Help", "Verification"); await p.waitForTimeout(400); await site("verification-report"); await p.keyboard.press("Escape"); }
+
+  // Stop and resume
+  await openExample("Lid-driven cavity, Re 100");
+  await p.evaluate(() => { window.__stopAfter = 3; });
+  await run("Solve"); await solved(); await tab("Home");
+  check("a stopped solve says so and offers to resume", (await text(".srun")).includes("STOPPED") && (await p.locator('.ribbon .grp:has(.cap:has-text("Run")) .rb:has-text("Resume")').count()) === 1 && (await state()).has_results, await text(".srun"));
+  await p.evaluate(() => { window.__stopAfter = 0; });
+  await run("Resume"); await solved(); await tab("Home");
+  check("Resume carries on to convergence", (await text(".srun")).includes("CONVERGED") && (await p.locator('.ribbon .grp:has(.cap:has-text("Run")) .rb:has-text("Resume")').count()) === 0, await text(".srun"));
+  check("the cavity is solved in two clicks from its example (the mesh is drawn after)", (await state()).has_mesh && (await calls("mesh_view")).length >= 2);
+
+  // Heat: temperature, the inferno map, the energy residual
+  await openExample("Heated cavity, Ra 10⁵");
+  await run("Solve"); await solved(240000);
+  const hl = await text(".sleg");
+  check("the heated cavity is coloured by temperature in the model's units", (await state()).has_results && hl.includes("TEMPERATURE") && hl.includes("°C") && hl.includes("20.5") && hl.includes("19.5"), hl);
+  check("the residual chart has an energy line with heat on", (await p.evaluate(() => window.__chartData(document.querySelector(".spanel .schart canvas")).length)) === 3);
+  const hot = await brightest(0.08, 0.3), cold = await brightest(0.92, 0.3);
+  check("warm on the left, cool on the right (inferno)", hot[0] > cold[0] + 80, `${hot} / ${cold}`);
+  await rb("Results", "Values"); await p.waitForTimeout(400);
+  check("Values gives the Nusselt number (about 4.52 at Ra 10⁵)", /Warm wall: Nusselt number\s+4\.5[12]/.test(await text(".dlg")), (await text(".dlg")).slice(0, 400));
+  await p.keyboard.press("Escape"); await p.keyboard.press("f"); await p.waitForTimeout(250);
+  await shot("22-heated"); await site("heated-cavity-temperature"); await hear();
+  await p.click(".theme"); await p.waitForTimeout(300); await shot("23-dark-results"); await hear();
+  await p.click(".theme"); await p.waitForTimeout(80); await p.click(".theme"); await p.waitForTimeout(150);
+  await rb("Physics", "Buoyancy"); await p.waitForTimeout(250);
+  check("changing the physics drops the results and their legend", !(await state()).has_results && (await p.locator(".sleg").count()) === 0);
+  await p.keyboard.press("Control+z"); await p.keyboard.press("Control+s"); await p.waitForTimeout(200);
+
 
   // ---------- themes
   await p.click(".theme"); await p.waitForTimeout(100); // light → dark

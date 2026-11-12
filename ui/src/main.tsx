@@ -22,6 +22,9 @@ import { Backstage, update, checkUpdate } from "./backstage";
 import { PrintRoot } from "./print";
 import { Menu, Toast, Dialog, askYes } from "./ui";
 import * as H from "./help";
+import { initSim } from "./sim";
+import { initDraw } from "./draw";
+import { initSimUi, SimOverlay, HoverValues } from "./simui";
 
 const TOOL_NAME: Record<string, string> = { select: "Select", pan: "Pan", rect: "Rectangle", circle: "Circle", poly: "Polygon", pick: "Pick edges" };
 
@@ -40,6 +43,7 @@ const Status = () => {
         <Show when={tool() !== "select"}><span class="muted">Tool: {TOOL_NAME[tool()]}</span></Show>
       </Show>
       <span class="grow" />
+      <Show when={out()?.has_results}><HoverValues /></Show>
       <Show when={cursor()}>{c => <span class="muted coords">x {num(toU("len", c()[0]), 4)} · y {num(toU("len", c()[1]), 4)} {ulabel("len")}</span>}</Show>
       <button onClick={C.zoomOut} title="Zoom Out">−</button><button class="zpct" title="Fit the model in the view (F)" onClick={C.fit}>{pct()}%</button><button onClick={C.zoomIn} title="Zoom In">+</button>
     </footer>
@@ -55,6 +59,7 @@ const confirmClose = () => openDialog(() => (
 ));
 
 const App = () => {
+  initSim(); initDraw(); initSimUi();
   onMount(async () => {
     try {
       const o = await invoke<Options>("options"); setOpts(o); setThemeRaw(o.theme || "auto"); setSnapOn(o.snap); setShowGrid(o.grid); applyTheme();
@@ -94,7 +99,7 @@ const App = () => {
       <main class="work">
         <Show when={out()}>
           <Show when={treeOpen()}><Tree /></Show>
-          <div class="centre"><Canvas /><Bottom /></div>
+          <div class="centre"><div class="viewwrap"><Canvas /><SimOverlay /></div><Bottom /></div>
           <Show when={inspOpen()}><Inspector /></Show>
         </Show>
       </main>

@@ -6,6 +6,7 @@ import { bottom, setBottom, bottomOpen, setBottomOpen, messages, setMessages, Bo
 import { Icon } from "./ui";
 import { Help } from "./help";
 import { cmd } from "./cmds";
+import { checkCount, checkBad } from "./simui";
 
 const TABS: [BottomTab, string, string][] = [["residuals", "Residuals", "resid"], ["monitors", "Monitors", "monitor"], ["checks", "Checks", "wizard"], ["messages", "Messages", "messages"]];
 /** What a tab shows instead of its empty state (the engine's parts set these). */
@@ -25,21 +26,21 @@ const QuickChecks = () => {
   ];
   return <div class="bchecks">
     <For each={items()}>{([ok, text, go]) => <button class="bcheck" classList={{ ok, bad: !ok }} onClick={go}><i>{ok ? "✓" : "!"}</i><span>{text}</span></button>}</For>
-    <p class="muted">The full list (outlets, heat settings, the mesh) arrives with the solver. <button class="btn sm" onClick={() => cmd("check")}>Run the checks</button></p>
+    <p class="muted">These three are read straight off the model. <button class="btn sm" onClick={() => cmd("check")}>Run all the checks</button></p>
   </div>;
 };
 
 export const Bottom = () => (
   <section class="bottom" classList={{ shut: !bottomOpen() }}>
     <header>
-      <For each={TABS}>{([k, l, i]) => <button classList={{ on: bottomOpen() && bottom() === k }} onClick={() => { setBottom(k); setBottomOpen(true); }}><Icon n={i} />{l}{k === "messages" && messages().some(m => m.kind !== "info") && <b class="dot" />}</button>}</For>
+      <For each={TABS}>{([k, l, i]) => <button classList={{ on: bottomOpen() && bottom() === k }} onClick={() => { setBottom(k); setBottomOpen(true); }}><Icon n={i} />{l}{k === "messages" && messages().some(m => m.kind !== "info") && <b class="dot" />}{k === "checks" && checkCount() > 0 && <b class="badge" classList={{ bad: checkBad() }}>{checkCount()}</b>}</button>}</For>
       <Help k="bottom" /><span class="grow" />
       <Show when={bottomOpen() && bottom() === "messages" && messages().length}><button class="btn sm" onClick={() => setMessages([])}>Clear</button></Show>
       <button class="fold" title={bottomOpen() ? "Hide the panel" : "Show the panel"} onClick={() => setBottomOpen(!bottomOpen())}>{bottomOpen() ? "▾" : "▴"}</button>
     </header>
     <Show when={bottomOpen()}>
       <div class="bbody">
-        <Show when={panels()[bottom()]} fallback={<>
+        <Show when={panels()[bottom()]} keyed fallback={<>
           <Show when={bottom() === "residuals"}><Empty icon="resid" title="No solve yet" text="While a solve runs, the residuals of momentum, continuity and energy are plotted here. They should fall by many powers of ten." /></Show>
           <Show when={bottom() === "monitors"}><Empty icon="monitor" title="No monitors plotted yet" text="Monitors are numbers watched during a solve, such as the drag on a body or the outlet temperature. Add them under Results; they are plotted here as the solve runs." /></Show>
           <Show when={bottom() === "checks"}><Show when={out()} fallback={<Empty icon="wizard" title="No model" text="Open or start a model first." />}><QuickChecks /></Show></Show>
@@ -48,7 +49,7 @@ export const Bottom = () => (
               <table class="tbl msgs"><tbody><For each={[...messages()].reverse()}>{m => <tr classList={{ warn: m.kind === "warn", err: m.kind === "error" }}><td class="muted">{m.at}</td><td>{m.kind === "error" ? "Error" : m.kind === "warn" ? "Note" : "Info"}</td><td>{m.text}</td></tr>}</For></tbody></table>
             </Show>
           </Show>
-        </>}>{body => body()()}</Show>
+        </>}>{body => body()}</Show>
       </div>
     </Show>
   </section>
