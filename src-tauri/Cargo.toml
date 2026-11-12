@@ -12,6 +12,10 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 flow-core.workspace = true
+flow-cli.workspace = true
+flow-mesh.workspace = true
+flow-post.workspace = true
+flow-verify.workspace = true
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

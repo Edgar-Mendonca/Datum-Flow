@@ -57,7 +57,7 @@ flow-core ─▶ flow-mesh ─▶ flow-solve ─▶ flow-post ─▶ flow-verify
 | `crates/flow-core/src/examples.rs` | The examples and templates as complete models |
 | `crates/flow-core/src/wire.rs` | What the window is sent after every action |
 | `crates/flow-core/src/hardening.rs` | Hardening tests: failed edits, random and hostile edits, damaged files, speed |
-| `crates/flow-core/examples/dump.rs` | The UI tests' fixture and bridge to the real engine |
+| `crates/flow-cli/src/engine.rs` | The session the window and the command line share: mesh, check, solve (as a job for a worker thread), fields, values, exports |
 | `crates/flow-mesh/src/mesh.rs` | The mesher: graded edge points, constrained Delaunay with refinement (spade), fluid triangles, boundary tagging, midside nodes on arcs, quality report |
 | `crates/flow-mesh/src/size.rs` | The size field: finer at walls, sharp corners, wakes and asked-for places, growing away from them |
 | `crates/flow-mesh/src/check.rs` | The checks before solving (the boundary wizard) |

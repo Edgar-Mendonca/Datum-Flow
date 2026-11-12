@@ -1,13 +1,24 @@
 [package]
 name = "flow-cli"
-description = "Datum Flow engine."
+description = "Datum Flow engine: the session the window and the command line share (mesh, check, solve, read results), and the command-line tool."
 version.workspace = true
 license.workspace = true
 edition.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[lib]
+name = "flow_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "flow-cli"
+path = "src/main.rs"
+
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
 flow-core.workspace = true
+flow-mesh.workspace = true
+flow-solve.workspace = true
+flow-post.workspace = true

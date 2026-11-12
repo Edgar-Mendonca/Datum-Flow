@@ -7,7 +7,7 @@
     "tauri": "tauri",
     "dev": "tauri dev",
     "build": "tauri build",
-    "fixture": "cargo run -q -p flow-core --example dump > tests_ui/fixture.json",
+    "fixture": "cargo run -q -p flow-cli --example bridge > tests_ui/fixture.json",
     "test:ui": "npm run fixture && npm run build:ui && node tests_ui/run.cjs"
   },
   "devDependencies": {

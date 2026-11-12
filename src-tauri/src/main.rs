@@ -10,7 +10,9 @@ use flow_core::model::{Fluid, Model, Units};
 use flow_core::{examples, file, fluid, wire};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use flow_cli::Engine;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State, WindowEvent};
 use tauri_plugin_dialog::DialogExt;
 
@@ -45,29 +47,6 @@ impl Default for Options {
     }
 }
 
-/// What the engine has worked out for the open model. The mesh and the results are kept here,
-/// beside the document, and dropped when an edit makes them out of date.
-#[derive(Default)]
-struct Engine {
-    // ENGINE: the mesher's output goes here, e.g. `mesh: Option<flow_mesh::Mesh>`.
-    // ENGINE: the solver's output goes here, e.g. `results: Option<flow_solve::Solution>`.
-    /// The document revision the mesh and results belong to.
-    revision: u64,
-}
-
-impl Engine {
-    /// The model changed in a way that makes the mesh and the results out of date.
-    fn invalidate(&mut self) {
-        *self = Engine::default();
-    }
-    fn has_mesh(&self) -> bool {
-        false // ENGINE: self.mesh.is_some()
-    }
-    fn has_results(&self) -> bool {
-        false // ENGINE: self.results.is_some()
-    }
-}
-
 struct App {
     doc: Doc,
     path: Option<PathBuf>,
@@ -76,12 +55,15 @@ struct App {
     /// What a damaged file lost or changed when it was opened (shown under Messages).
     notes: Vec<String>,
     opts: Options,
+    /// The mesh and the results of the open model, dropped when an edit makes them out of date.
     engine: Engine,
+    /// Set while a solve runs on its worker thread; storing true asks it to stop.
+    stop: Option<Arc<AtomicBool>>,
 }
 
 impl App {
     fn new(opts: Options) -> App {
-        let mut a = App { doc: Doc::new(Model::default()), path: None, saved: None, notes: vec![], opts, engine: Engine::default() };
+        let mut a = App { doc: Doc::new(Model::default()), path: None, saved: None, notes: vec![], opts, engine: Engine::default(), stop: None };
         a.load(Model::default(), None, vec![]);
         a
     }
@@ -124,7 +106,7 @@ fn guard<T>(f: impl FnOnce() -> R<T>) -> R<T> {
     })
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 struct Named {
     id: &'static str,
     title: &'static str,
@@ -133,7 +115,7 @@ struct Named {
 
 /// What the window gets after every action: the engine's view of the model (`wire::Out`) plus
 /// what the shell owns.
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 struct Out {
     #[serde(flatten)]
     out: wire::Out,
@@ -234,10 +216,139 @@ fn fluid_preset(name: String, t: f64) -> R<Fluid> {
     fluid::preset(&name, t).ok_or_else(|| "That fluid is not built in.".into())
 }
 
-// ENGINE: `mesh`, `check`, `solve_start` / `solve_stop` (a worker thread that emits
-// "solve-progress" events), `results`, `report`, `export_*` and `verification` go here. They read
-// `a.doc.m`, keep what they make in `a.engine` with `a.engine.revision = a.doc.revision`, and
-// return plain serialisable values. Register them in `main()` below.
+// ---------------------------------------------------------------- mesh, solve, results
+
+/// Mesh the model (again) and return the mesh for the view.
+#[tauri::command]
+async fn mesh(st: State<'_, St>) -> R<flow_cli::engine::MeshView> {
+    let mut a = st.lock();
+    guard(|| {
+        if a.stop.is_some() {
+            return Err("A solve is running: stop it before meshing again.".into());
+        }
+        let (m, rev) = (a.doc.m.clone(), a.doc.revision);
+        a.engine.mesh(&m, rev)
+    })
+}
+
+/// The mesh already made for this model, if any.
+#[tauri::command]
+fn mesh_view(st: State<St>) -> Option<flow_cli::engine::MeshView> {
+    let a = st.lock();
+    if a.engine.revision == a.doc.revision { a.engine.mesh_view() } else { None }
+}
+
+/// The checks before solving.
+#[tauri::command]
+fn check(st: State<St>) -> Vec<flow_mesh::Issue> {
+    let a = st.lock();
+    if a.engine.revision == a.doc.revision { a.engine.check(&a.doc.m) } else { flow_mesh::check(&a.doc.m, None) }
+}
+
+#[derive(Clone, Serialize)]
+struct Done {
+    summary: Option<flow_cli::engine::Summary>,
+    error: Option<String>,
+    out: Out,
+}
+
+/// Start solving on a worker thread. Every iteration is sent as a "solve-progress" event, and
+/// the end as "solve-done". Returns the monitors' names.
+#[tauri::command]
+fn solve_start(app: AppHandle, st: State<St>) -> R<Vec<String>> {
+    let mut a = st.lock();
+    if a.stop.is_some() {
+        return Err("A solve is already running.".into());
+    }
+    let job = guard(|| {
+        let (m, rev) = (a.doc.m.clone(), a.doc.revision);
+        a.engine.job(&m, rev)
+    })?;
+    let stop = Arc::new(AtomicBool::new(false));
+    a.stop = Some(stop.clone());
+    let names = job.monitor_names();
+    std::thread::Builder::new().name("solve".into()).spawn(move || {
+        let ran = guard(|| job.run(&mut |p| {
+            let _ = app.emit("solve-progress", p);
+            !stop.load(Ordering::Relaxed)
+        }));
+        let st = app.state::<St>();
+        let mut a = st.lock();
+        a.stop = None;
+        let (summary, error) = match ran {
+            Ok((solved, monitors)) => match a.engine.finish(&job, solved, monitors) {
+                Some(s) => (Some(s), None),
+                None => (None, Some("The model changed while it was being solved, so the results were dropped.".to_string())),
+            },
+            Err(e) => (None, Some(e)),
+        };
+        let _ = app.emit("solve-done", Done { summary, error, out: out(&a) });
+    }).map_err(|e| format!("Could not start the solver: {e}"))?;
+    Ok(names)
+}
+
+/// Ask the running solve to stop after its current iteration.
+#[tauri::command]
+fn solve_stop(st: State<St>) {
+    if let Some(s) = &st.lock().stop {
+        s.store(true, Ordering::Relaxed);
+    }
+}
+
+/// How the last solve went (history, monitors, message), if there are results.
+#[tauri::command]
+fn summary(st: State<St>) -> Option<flow_cli::engine::Summary> {
+    let a = st.lock();
+    if a.engine.revision == a.doc.revision { a.engine.summary().cloned() } else { None }
+}
+
+#[tauri::command]
+async fn field(st: State<'_, St>, id: String, lines: Option<usize>) -> R<flow_cli::engine::FieldView> {
+    let mut a = st.lock();
+    guard(|| a.engine.field(&id, lines.unwrap_or(24)))
+}
+
+#[tauri::command]
+fn arrows(st: State<St>, count: usize) -> R<Vec<[f32; 4]>> {
+    let a = st.lock();
+    guard(|| a.engine.arrows(&a.doc.m, count))
+}
+
+#[tauri::command]
+fn probe(st: State<St>, x: f64, y: f64) -> R<flow_post::Sample> {
+    let a = st.lock();
+    guard(|| a.engine.probe(x, y))
+}
+
+#[tauri::command]
+fn probes(st: State<St>) -> R<Vec<(String, flow_post::Sample)>> {
+    let a = st.lock();
+    guard(|| a.engine.probes(&a.doc.m))
+}
+
+#[tauri::command]
+fn line(st: State<St>, index: usize) -> R<Vec<(f64, flow_post::Sample)>> {
+    let a = st.lock();
+    guard(|| a.engine.line(&a.doc.m, index))
+}
+
+#[tauri::command]
+fn values(st: State<St>) -> R<Vec<flow_cli::engine::ValueRow>> {
+    let a = st.lock();
+    guard(|| a.engine.values(&a.doc.m))
+}
+
+/// The text of an export: "vtu", "probes" (CSV) or "line" (CSV of plot line `index`).
+#[tauri::command]
+async fn export_text(st: State<'_, St>, what: String, index: Option<usize>) -> R<String> {
+    let a = st.lock();
+    guard(|| match what.as_str() {
+        "vtu" => a.engine.vtu(),
+        "probes" => a.engine.probes_csv(&a.doc.m),
+        "line" => a.engine.line_csv(&a.doc.m, index.unwrap_or(0)),
+        _ => Err("That export does not exist.".into()),
+    })
+}
 
 // ---------------------------------------------------------------- files
 
@@ -571,7 +682,7 @@ fn main() {
             }
         })
         .invoke_handler(tauri::generate_handler![
-            state, apply, undo, redo, new_doc, fluid_preset, open, save, save_file, save_pdf, options, set_options, autosave, recovery, recover, recent, startup_file, open_link, version, quit, check_update, install_update
+            state, apply, undo, redo, new_doc, fluid_preset, mesh, mesh_view, check, solve_start, solve_stop, summary, field, arrows, probe, probes, line, values, export_text, open, save, save_file, save_pdf, options, set_options, autosave, recovery, recover, recent, startup_file, open_link, version, quit, check_update, install_update
         ])
         .run(tauri::generate_context!())
         .expect("Datum Flow failed to start");

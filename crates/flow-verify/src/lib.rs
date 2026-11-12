@@ -5,6 +5,7 @@
 #![allow(clippy::needless_range_loop)]
 
 pub mod gci;
+pub mod report;
 pub mod run;
 
 pub use run::{solve_model, Run};

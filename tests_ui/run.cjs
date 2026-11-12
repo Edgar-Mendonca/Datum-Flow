@@ -1,5 +1,5 @@
 // UI tests: the built window (ui/dist) in Chromium, with the real model engine behind a bridge
-// (crates/flow-core/examples/dump.rs --bridge) in place of the desktop shell. Edits, undo, examples
+// (crates/flow-cli/examples/bridge.rs --bridge) in place of the desktop shell. Edits, undo, examples
 // and fluids are the engine's own; only the shell's parts (files, options, updates) are mocked.
 // Run: npm run test:ui (dumps tests_ui/fixture.json, builds the window, runs this).
 const { chromium } = require("playwright");
@@ -20,7 +20,7 @@ const check = (name, ok, info = "") => { console.log(`${ok ? "ok  " : "FAIL"} ${
 const shots = path.join(__dirname, "shots");
 
 // ---------- the engine bridge: one request per line, answers matched by id
-const engine = spawn("cargo", ["run", "-q", "-p", "flow-core", "--example", "dump", "--", "--bridge"], { cwd: path.join(__dirname, ".."), stdio: ["pipe", "pipe", "inherit"] });
+const engine = spawn("cargo", ["run", "-q", "-p", "flow-cli", "--example", "bridge", "--", "--bridge"], { cwd: path.join(__dirname, ".."), stdio: ["pipe", "pipe", "inherit"] });
 const waiting = new Map(); let nextId = 1;
 readline.createInterface({ input: engine.stdout }).on("line", l => { try { const m = JSON.parse(l); waiting.get(m.id)?.(m); waiting.delete(m.id); } catch { /* not ours */ } });
 const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set(id, res); engine.stdin.write(JSON.stringify({ id, cmd, args: args ?? {} }) + "\n"); });

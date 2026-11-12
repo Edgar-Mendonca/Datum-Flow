@@ -614,7 +614,11 @@ name = "datum-flow"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "flow-cli",
  "flow-core",
+ "flow-mesh",
+ "flow-post",
+ "flow-verify",
  "serde",
  "serde_json",
  "sha2",
@@ -1029,6 +1033,9 @@ name = "flow-cli"
 version = "0.1.0"
 dependencies = [
  "flow-core",
+ "flow-mesh",
+ "flow-post",
+ "flow-solve",
  "serde",
  "serde_json",
 ]
