@@ -18,6 +18,9 @@ pub struct Numbers {
     pub ra: f64,
     /// Prandtl number ν / α.
     pub pr: f64,
+    /// Kinematic viscosity ν = μ/ρ and thermal diffusivity α = k/(ρ cp) (m²/s).
+    pub nu: f64,
+    pub alpha: f64,
     /// Flow comes in somewhere (a channel or a body in a stream), as opposed to a closed box.
     pub through: bool,
 }
@@ -63,7 +66,7 @@ pub fn numbers(m: &Model) -> Numbers {
     let f = &m.fluid;
     let g = m.physics.gravity[0].hypot(m.physics.gravity[1]);
     let ra = if m.physics.heat && m.physics.buoyancy { g * f.beta.abs() * dt * length.powi(3) / (f.nu() * f.alpha()) } else { 0.0 };
-    Numbers { speed, length, dt, re: f.rho * speed * length / f.mu, ra, pr: f.pr(), through }
+    Numbers { speed, length, dt, re: f.rho * speed * length / f.mu, ra, pr: f.pr(), nu: f.nu(), alpha: f.alpha(), through }
 }
 
 /// Above these the flow is probably turbulent and 0.1 will not solve it unless told to.

@@ -1,0 +1,16 @@
+[package]
+name = "flow-verify"
+description = "Datum Flow engine: the verification cases (exact solutions, order of accuracy, benchmarks, validation) as tests and as the in-app report."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+flow-core.workspace = true
+flow-mesh.workspace = true
+flow-solve.workspace = true
+flow-post.workspace = true

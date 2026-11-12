@@ -1,0 +1,32 @@
+Datum Flow
+Copyright (c) 2026 Edgar Mendonca. MIT licence.
+
+Datum Flow's solver, mesher driver and results code are its own. It builds on these
+open-source parts, each used under its own licence:
+
+Engine (Rust crates)
+- spade (MIT OR Apache-2.0, https://github.com/Stoeoef/spade): constrained Delaunay
+  triangulation and refinement, under the 2D mesher.
+- faer (MIT, https://github.com/sarah-quinones/faer-rs): sparse LU factorisation for the
+  linear systems.
+- serde and serde_json (MIT OR Apache-2.0): reading and writing the .dflow file.
+
+Desktop shell (Rust crates)
+- Tauri 2 and tauri-plugin-dialog (MIT OR Apache-2.0, https://tauri.app).
+- ureq (MIT OR Apache-2.0) and sha2 (MIT OR Apache-2.0): the update check and the checksum
+  of a downloaded installer.
+- chrono (MIT OR Apache-2.0): dates on recovery files and the crash log.
+
+Window
+- SolidJS (MIT, https://www.solidjs.com).
+- Chart.js (MIT, https://www.chartjs.org): the residual, monitor and line plots.
+- IBM Plex Sans and IBM Plex Mono (SIL Open Font Licence 1.1), packaged by Fontsource.
+
+Colour maps
+- viridis, inferno and cividis: perceptually uniform colour maps released to the public
+  domain (CC0) by their authors (S. van der Walt, N. Smith; J. Nuñez, C. Anderton, R. Renslow).
+
+The full licence text of every crate is in its source package (see Cargo.lock for the exact
+versions); `cargo deny check` in CI allows only the licences listed in deny.toml.
+
+Product and file-format names are trademarks of their owners and are used only to describe file compatibility.

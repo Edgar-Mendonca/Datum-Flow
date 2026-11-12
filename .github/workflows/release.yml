@@ -1,0 +1,80 @@
+name: Release
+# Builds the Windows installer and publishes a GitHub Release that the in-app updater and Datum
+# Home pick up. Bump the version in Cargo.toml ([workspace.package]), add a CHANGELOG.md section,
+# then run this workflow from the Actions tab (or push the tag: git tag v0.1.1 && git push origin v0.1.1).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write      # build provenance: proves the installer was built here, from this commit
+  attestations: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Read the app version
+        shell: bash
+        run: |
+          V=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          test -n "$V" || { echo "No version in Cargo.toml"; exit 1; }
+          if [[ "$GITHUB_REF" == refs/tags/* && "v$V" != "$GITHUB_REF_NAME" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match version $V in Cargo.toml"; exit 1
+          fi
+          echo "V=$V" >> "$GITHUB_ENV"
+      - name: Release notes from CHANGELOG.md
+        shell: bash
+        run: |
+          awk -v v="$V" 'index($0, "## " v " ") == 1 || $0 == "## " v {f=1; next} /^## / {f=0} f' CHANGELOG.md > notes.md
+          cat notes.md
+          test -s notes.md || { echo "CHANGELOG.md has no section for $V"; exit 1; }
+      - run: npm run build:ui
+      # Any FAIL in the verification suite blocks the release: every case, the slow ones included.
+      - name: Engine tests and the full verification suite
+        run: cargo test --workspace --release -- --include-ignored
+      - name: Build the installer
+        # The installer tools are downloaded from GitHub releases, which sometimes answer 504:
+        # try again a few times (the app is already compiled after the first try).
+        shell: bash
+        run: |
+          for i in 1 2 3 4; do npx tauri build --bundles nsis && exit 0; echo "Attempt $i failed; trying again"; sleep $((i * 45)); done
+          exit 1
+      - name: Installer and checksums
+        shell: bash
+        run: |
+          mkdir out
+          cp target/release/bundle/nsis/*-setup.exe "out/DatumFlow-$V-setup.exe"
+          # The command-line tool, when this version has one.
+          if [ -f target/release/flow-cli.exe ]; then cp target/release/flow-cli.exe "out/datum-flow-cli-$V.exe"; fi
+          cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      # Anyone can check it with: gh attestation verify DatumFlow-<version>-setup.exe --repo Edgar-Mendonca/Datum-Flow
+      - name: Build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: out/DatumFlow-${{ env.V }}-setup.exe
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.V }}
+          target_commitish: ${{ github.sha }}
+          name: Datum Flow ${{ env.V }}
+          body_path: notes.md
+          make_latest: true
+          files: out/*

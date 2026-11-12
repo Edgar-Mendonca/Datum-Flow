@@ -1,0 +1,26 @@
+[package]
+name = "datum-flow"
+description = "Datum Flow: fluid flow simulation on the desktop."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+flow-core.workspace = true
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+serde.workspace = true
+serde_json.workspace = true
+ureq = { version = "2", features = ["json", "native-certs"] }
+sha2 = "0.10"
+
+[target.'cfg(windows)'.dependencies]
+# Save as PDF straight from the WebView (no print window, no browser header or footer).
+webview2-com = "0.39"
+windows-core = "0.62"

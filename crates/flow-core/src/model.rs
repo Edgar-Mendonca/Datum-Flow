@@ -537,8 +537,8 @@ impl Model {
         fix(&mut f.beta, -1.0, 1.0, df.beta, "The fluid's expansion coefficient", &mut notes);
         fix(&mut f.at, 1.0, 1e5, df.at, "The fluid's temperature", &mut notes);
         let p = &mut self.physics;
-        fix(&mut p.gravity[0], -1e4, 1e4, 0.0, "Gravity", &mut notes);
-        fix(&mut p.gravity[1], -1e4, 1e4, -G0, "Gravity", &mut notes);
+        fix(&mut p.gravity[0], -1e12, 1e12, 0.0, "Gravity", &mut notes);
+        fix(&mut p.gravity[1], -1e12, 1e12, -G0, "Gravity", &mut notes);
         fix(&mut p.t_ref, 1.0, 1e5, 293.15, "The reference temperature", &mut notes);
         fix(&mut p.length, 0.0, 1e6, 0.0, "The reference length", &mut notes);
         fix(&mut p.depth, 1e-9, 1e6, 1.0, "The depth", &mut notes);

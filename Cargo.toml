@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = ["crates/flow-core", "crates/flow-mesh", "crates/flow-solve", "crates/flow-post", "crates/flow-verify", "crates/flow-cli", "src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+license = "MIT"
+edition = "2021"
+authors = ["Edgar Mendonca"]
+repository = "https://github.com/Edgar-Mendonca/Datum-Flow"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+flow-core = { path = "crates/flow-core" }
+flow-mesh = { path = "crates/flow-mesh" }
+flow-solve = { path = "crates/flow-solve" }
+flow-post = { path = "crates/flow-post" }
+flow-verify = { path = "crates/flow-verify" }
+flow-cli = { path = "crates/flow-cli" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 16
+# Unwind (not abort): an internal error in one action is caught and reported instead of closing the app.
+panic = "unwind"
+strip = true
+
+# Solvers are slow without optimisation; keep tests and dev runs usable.
+[profile.dev.package."*"]
+opt-level = 2
+[profile.dev.package.flow-solve]
+opt-level = 2
+[profile.dev.package.flow-mesh]
+opt-level = 2
+[profile.dev.package.flow-post]
+opt-level = 2

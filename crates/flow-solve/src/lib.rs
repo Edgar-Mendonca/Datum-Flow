@@ -2,6 +2,9 @@
 //! heat and buoyancy on Taylor–Hood elements (quadratic velocity and temperature, linear
 //! pressure), one coupled system solved by Picard then Newton with a sparse direct LU.
 
+// Element loops index several small arrays by the same counter; that is the clearest way to write them.
+#![allow(clippy::needless_range_loop)]
+
 pub mod advice;
 pub mod assemble;
 pub mod fe;

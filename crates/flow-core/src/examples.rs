@@ -229,6 +229,11 @@ mod tests {
         let h = heated_cavity(1e5);
         // Ra = g β ΔT L³ / (ν α), Pr = 0.71.
         assert!((h.physics.gravity[1].abs() * h.fluid.beta / (h.fluid.nu() * h.fluid.alpha()) - 1e5).abs() < 1e-6 && (h.fluid.pr() - 0.71).abs() < 1e-12);
+        // Through `example` too (loading must not clamp the benchmark's gravity).
+        for (id, ra) in [("heated-1e3", 1e3), ("heated-1e4", 1e4), ("heated-1e5", 1e5), ("heated-1e6", 1e6)] {
+            let n = crate::numbers::numbers(&example(id).unwrap());
+            assert!((n.ra - ra).abs() < 1e-6 * ra, "{id}: {}", n.ra);
+        }
         let s = step(100.0);
         let BcKind::Inlet { speed, .. } = s.boundaries[0].kind else { panic!() };
         assert!((speed * 0.0104 / s.fluid.nu() - 100.0).abs() < 1e-9);

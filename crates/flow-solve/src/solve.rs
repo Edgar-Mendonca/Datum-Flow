@@ -110,6 +110,12 @@ struct Run<'a> {
     jac: Csc,
     /// Largest norm of each block of the residual seen so far: the scale of "converged".
     scale: [f64; 3],
+    /// ‖lumped corner areas‖ / L: times a speed, the continuity residual of a flow whose
+    /// divergence is as large as speed / L (L = √area). The continuity scale never falls below it.
+    weight: f64,
+    len: f64,
+    /// Largest speed seen so far.
+    umax: f64,
     history: Vec<Row>,
     iter: u32,
 }
@@ -125,11 +131,23 @@ impl Run<'_> {
         }
         n.map(f64::sqrt)
     }
-    fn scaled(&mut self, r: &[f64], grow: bool) -> [f64; 3] {
-        let n = self.norms(r);
+    fn scaled(&mut self, r: &[f64], x: &[f64], grow: bool) -> [f64; 3] {
+        let d = self.d;
+        let mut n = self.norms(r);
         if grow {
+            self.umax = x[..2 * d.nn].chunks(2).fold(self.umax, |m, u| m.max(u[0].hypot(u[1])));
             for b in 0..3 {
                 self.scale[b] = self.scale[b].max(n[b]);
+            }
+            // A fluid starting at rest has no continuity residual at all: measure it against the
+            // speeds that then appear, not against round-off.
+            self.scale[1] = self.scale[1].max(self.umax * self.weight);
+        }
+        if d.heat {
+            // An energy residual at the level of round-off of the absolute temperatures is zero.
+            let tmax = x[2 * d.nn + d.nv..].iter().fold(0.0f64, |m, t| m.max(t.abs()));
+            if n[2] <= 1e-12 * (self.s.k + self.s.rho * self.s.cp * self.umax * self.len) * tmax * (d.nn as f64).sqrt() {
+                n[2] = 0.0;
             }
         }
         [0, 1, 2].map(|b| if self.scale[b] > 0.0 { n[b] / self.scale[b] } else { 0.0 })
@@ -158,7 +176,7 @@ impl Run<'_> {
         let mut stalls = 0u32;
         let mut first = f64::NAN;
         for it in 0..=max_iter {
-            let sc = self.scaled(r, true);
+            let sc = self.scaled(r, x, true);
             let merit = (sc[0] * sc[0] + sc[1] * sc[1] + sc[2] * sc[2]).sqrt();
             if !merit.is_finite() {
                 return Ok(End::Failed("the numbers grew without limit".into()));
@@ -196,7 +214,7 @@ impl Run<'_> {
             for _ in 0..6 {
                 let xt = step(x, a, &self.fr);
                 let rt = assemble(mesh, s, d, &xt, Load(lam), false, None);
-                let st = self.scaled(&rt, false);
+                let st = self.scaled(&rt, &xt, false);
                 let mt = (st[0] * st[0] + st[1] * st[1] + st[2] * st[2]).sqrt();
                 // Near round-off the residual cannot fall further: a full step is as good as it gets.
                 if mt.is_finite() && (mt < (1.0 - 1e-4 * a) * merit || (a == 1.0 && merit < 1e-11)) {
@@ -230,7 +248,15 @@ pub fn solve(mesh: &Mesh, s: &Setup, opt: &SolverSettings, start: Option<&State>
     let fr = free(d, s);
     let jac = pattern(mesh, d, &fr);
     let mut stats = Stats { unknowns: fr.n, nonzeros: jac.nnz(), linear_solver: solver.name(), ..Default::default() };
-    let mut run = Run { mesh, s, d, fr, jac, scale: [0.0; 3], history: vec![], iter: 0 };
+    let mut lumped = vec![0.0f64; d.nv];
+    for t in &mesh.tris {
+        let p = [mesh.nodes[t[0] as usize], mesh.nodes[t[1] as usize], mesh.nodes[t[2] as usize]];
+        let a = 0.5 * ((p[1][0] - p[0][0]) * (p[2][1] - p[0][1]) - (p[2][0] - p[0][0]) * (p[1][1] - p[0][1])).abs();
+        for k in 0..3 { lumped[t[k] as usize] += a / 3.0; }
+    }
+    let len = lumped.iter().sum::<f64>().sqrt().max(1e-300);
+    let weight = lumped.iter().map(|a| a * a).sum::<f64>().sqrt() / len;
+    let mut run = Run { mesh, s, d, fr, jac, scale: [0.0; 3], weight, len, umax: 0.0, history: vec![], iter: 0 };
     // The cold start: fluid at rest at the reference temperature. Its residual at full driving
     // sets the scale every later residual is measured against.
     let mut cold = vec![0.0; d.n()];
@@ -239,7 +265,7 @@ pub fn solve(mesh: &Mesh, s: &Setup, opt: &SolverSettings, start: Option<&State>
     }
     run.fix(&mut cold, 1.0);
     let r_cold = assemble(mesh, s, d, &cold, Load(1.0), false, None);
-    run.scaled(&r_cold, true);
+    run.scaled(&r_cold, &cold, true);
     if run.scale.iter().all(|v| *v == 0.0) {
         return Err("Nothing drives the flow: the fluid at rest already satisfies every equation.".into());
     }

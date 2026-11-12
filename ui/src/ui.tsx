@@ -1,0 +1,129 @@
+// Small building blocks: icons, menus, dialogs, tabs and form rows.
+import { For, Show, JSX, createSignal, onMount, onCleanup } from "solid-js";
+import { menu, setMenu, Item, closeDialog, openDialog, msg, setMsg, toU, fromU, ulabel, toast } from "./store";
+import { parseNum, num } from "./api";
+import { Help } from "./help";
+
+export const Icon = (p: { n: string; size?: number }) => (
+  <svg style={p.size ? { width: `${p.size}px`, height: `${p.size}px` } : undefined}><use href={`#i-${p.n}`} /></svg>
+);
+
+export const Menu = () => {
+  // Open submenus by depth: hovering an item at depth d replaces everything deeper.
+  const [subs, setSubs] = createSignal<{ x: number; y: number; px: number; items: Item[] }[]>([]);
+  const close = () => { setMenu(null); setSubs([]); };
+  const list = (items: Item[], x: number, y: number, depth: number, px = 0): JSX.Element => {
+    let el!: HTMLDivElement;
+    onMount(() => {
+      const r = el.getBoundingClientRect();
+      if (r.bottom > innerHeight - 4) el.style.top = `${Math.max(4, innerHeight - r.height - 4)}px`;
+      if (r.right > innerWidth - 4) el.style.left = `${Math.max(4, depth ? px - r.width : innerWidth - r.width - 4)}px`;
+    });
+    return (
+      <div class="menu" ref={el} style={{ left: `${x}px`, top: `${y}px` }} onMouseDown={e => e.stopPropagation()} onContextMenu={e => e.preventDefault()}>
+        <For each={items}>{it => it === "-" ? <hr /> : (
+          <button disabled={it.off} classList={{ on: it.on }}
+            onMouseEnter={e => { const r = e.currentTarget.getBoundingClientRect(); setSubs([...subs().slice(0, depth), ...(it.sub ? [{ x: r.right, y: r.top - 4, px: r.left, items: it.sub }] : [])]); }}
+            onClick={() => { if (it.sub) return; close(); it.run?.(); }}>
+            <i class="tick">{it.on && !it.icon ? "✓" : it.icon && <Icon n={it.icon} />}</i><span>{it.label}</span>{it.keys && <kbd>{it.keys}</kbd>}{it.sub && <b class="more">›</b>}
+          </button>
+        )}</For>
+      </div>
+    );
+  };
+  const down = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest?.(".menu")) close(); };
+  const key = (e: KeyboardEvent) => { if (e.key === "Escape" && menu()) { e.stopPropagation(); close(); } };
+  onMount(() => { document.addEventListener("mousedown", down); document.addEventListener("keydown", key, true); });
+  onCleanup(() => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key, true); });
+  return (
+    <Show when={menu()}>{m => <>{list(m().items, m().x, m().y, 0)}<For each={subs()}>{(s, i) => list(s.items, s.x, s.y, i() + 1, s.px)}</For></>}</Show>
+  );
+};
+
+export const Toast = () => (
+  <Show when={msg()}>{m => <div id="toast" classList={{ ok: m().ok }} onClick={() => setMsg(null)}>{m().text}</div>}</Show>
+);
+
+/** A modal dialog. `ok` returns false to keep it open. */
+export const Dialog = (p: { title: string; wide?: boolean; children: JSX.Element; ok?: () => boolean | void | Promise<boolean | void>; okText?: string; extra?: JSX.Element; cancel?: string; help?: string }) => {
+  const done = async () => { if (!p.ok || (await p.ok()) !== false) closeDialog(); };
+  const key = (e: KeyboardEvent) => {
+    if (e.key === "Escape") { e.stopPropagation(); closeDialog(); }
+    // Enter: the box being typed in first keeps its value (its change runs on blur), then OK.
+    if (e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); (e.target as HTMLElement)?.blur?.(); done(); }
+  };
+  // Drag the title bar to move the dialog off what it covers.
+  const [at, setAt] = createSignal<[number, number]>([0, 0]);
+  const move = (e: MouseEvent) => {
+    if ((e.target as Element).closest("button, a, .help") || e.button !== 0) return;
+    e.preventDefault();
+    const [x0, y0] = at(), sx = e.clientX, sy = e.clientY;
+    const mv = (m: MouseEvent) => setAt([x0 + m.clientX - sx, Math.max(-innerHeight / 2 + 40, y0 + m.clientY - sy)]);
+    const up = () => { removeEventListener("mousemove", mv); removeEventListener("mouseup", up); };
+    addEventListener("mousemove", mv); addEventListener("mouseup", up);
+  };
+  let el!: HTMLDivElement;
+  onMount(() => ((el.querySelector("input:not([type=checkbox]),textarea") ?? el.querySelector(".btn.pri") ?? el.querySelector("footer .btn")) as HTMLElement | null)?.focus());
+  // Escape also closes the top dialog when the focus has left it (a click on its text moves the focus to the page).
+  const away = (e: KeyboardEvent) => { if (e.key === "Escape" && !(e.target as Element)?.closest?.(".ov") && el.parentElement === [...document.querySelectorAll(".ov")].pop()) closeDialog(); };
+  document.addEventListener("keydown", away); onCleanup(() => document.removeEventListener("keydown", away));
+  return (
+    <div class="ov" onKeyDown={key}>
+      <div class="dlg" classList={{ wide: p.wide }} ref={el} style={at()[0] || at()[1] ? { transform: `translate(${at()[0]}px, ${at()[1]}px)` } : undefined}>
+        <header onMouseDown={move} title="Drag to move">{p.title}{p.help && <Help k={p.help} />}<button class="x" onClick={closeDialog}>×</button></header>
+        <div class="bd">{p.children}</div>
+        <footer>{p.extra}<span class="grow" />{p.ok && <button class="btn pri" onClick={done}>{p.okText ?? "OK"}</button>}<button class="btn" onClick={closeDialog}>{p.cancel ?? (p.ok ? "Cancel" : "Close")}</button></footer>
+      </div>
+    </div>
+  );
+};
+
+export const Tabs = (p: { tabs: [string, string][]; on: string; set: (k: string) => void }) => (
+  <div class="dtabs"><For each={p.tabs}>{([k, l]) => <button classList={{ on: p.on === k }} onClick={() => p.set(k)}>{l}</button>}</For></div>
+);
+
+export const Row = (p: { label: string; children: JSX.Element }) => <><label>{p.label}</label><div>{p.children}</div></>;
+export const Text = (p: { value: string | number | null | undefined; set: (v: string) => void; type?: string; disabled?: boolean; placeholder?: string; list?: string }) => (
+  <input type={p.type ?? "text"} value={p.value ?? ""} disabled={p.disabled} placeholder={p.placeholder} list={p.list} onChange={e => p.set(e.currentTarget.value)} />
+);
+export const Pick = (p: { value: string; set: (v: string) => void; options: (string | [string, string])[]; disabled?: boolean }) => (
+  <select value={p.value} disabled={p.disabled} onChange={e => p.set(e.currentTarget.value)}>
+    <For each={p.options}>{o => typeof o === "string" ? <option value={o}>{o}</option> : <option value={o[0]}>{o[1]}</option>}</For>
+  </select>
+);
+export const Check = (p: { label: string; value: boolean; set: (v: boolean) => void; disabled?: boolean }) => (
+  <label class="chk"><input type="checkbox" checked={p.value} disabled={p.disabled} onChange={e => p.set(e.currentTarget.checked)} />{p.label}</label>
+);
+export const Seg = (p: { options: [string, string][]; value: string; set: (v: string) => void }) => (
+  <div class="seg"><For each={p.options}>{([k, l]) => <button classList={{ on: p.value === k }} onClick={() => p.set(k)}>{l}</button>}</For></div>
+);
+
+/** Asks for a line of text in the app's own dialog (never the browser's prompt box). Null when cancelled. */
+export const askText = (title: string, label: string, value = "", okText = "OK") => new Promise<string | null>(res => openDialog(() => {
+  const [v, setV] = createSignal(value);
+  let done = false;
+  onCleanup(() => { if (!done) res(null); });
+  onMount(() => queueMicrotask(() => (document.querySelector(".ov:last-child .dlg input") as HTMLInputElement | null)?.select()));
+  return <Dialog title={title} okText={okText} ok={() => { done = true; res(v()); }}><div class="form"><Row label={label}><input class="asktext" value={v()} onInput={e => setV(e.currentTarget.value)} /></Row></div></Dialog>;
+}));
+/** Asks a yes/no question in the app's own dialog (never the browser's confirm box). */
+export const askYes = (title: string, text: string, okText = "OK") => new Promise<boolean>(res => openDialog(() => {
+  let done = false;
+  onCleanup(() => { if (!done) res(false); });
+  return <Dialog title={title} okText={okText} ok={() => { done = true; res(true); }}><p>{text}</p></Dialog>;
+}));
+
+/** A number with its unit. `kind` is a kind of quantity of `out.units` ("len", "speed", …); the
+ * value is SI, the box shows and takes display units. Empty kind: a plain number. */
+export const Num = (p: { value: number; set: (v: number) => void; kind?: string; sig?: number; min?: number; disabled?: boolean; width?: number; title?: string }) => {
+  const shown = () => num(p.kind ? toU(p.kind, p.value) : p.value, p.sig ?? 6).replace("−", "-");
+  const take = (el: HTMLInputElement) => {
+    const v = parseNum(el.value);
+    if (v === null) { el.value = shown(); return toast("That is not a number."); }
+    const si = p.kind ? fromU(p.kind, v) : v;
+    if (p.min !== undefined && si < p.min) { el.value = shown(); return toast("That value is too small here."); }
+    if (Math.abs(si - p.value) > 1e-12 * Math.max(1, Math.abs(p.value))) p.set(si); else el.value = shown();
+  };
+  return <span class="num"><input value={shown()} disabled={p.disabled} title={p.title} style={p.width ? { width: `${p.width}px` } : undefined} inputmode="decimal"
+    onChange={e => take(e.currentTarget)} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }} />{p.kind && ulabel(p.kind) && <i>{ulabel(p.kind)}</i>}</span>;
+};

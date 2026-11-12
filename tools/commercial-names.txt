@@ -1,0 +1,58 @@
+# Commercial simulation, CFD, CAD and office products that public words never name (FAMILY §13).
+# Read by the window check (tests_ui/run.cjs) and the repository check; matched
+# case-insensitively as whole words. Open-source projects and standards (spade, faer, SU2,
+# OpenFOAM, Gmsh, Netgen) are not listed: they may be named where they are used.
+ansys
+fluent
+ansys cfx
+cfx
+star-ccm+
+star-ccm
+star-cd
+simcenter
+comsol
+autodesk
+autocad
+autodesk cfd
+solidworks
+floefd
+flotherm
+flovent
+simscale
+cfd++
+converge cfd
+powerflow
+xflow
+phoenics
+flow-3d
+fidelity cfd
+numeca
+sc/tetra
+scstream
+pointwise
+icem
+icem cfd
+tecplot
+ensight
+fieldview
+abaqus
+nastran
+dassault
+simulia
+catia
+altair
+acusolve
+hyperworks
+hypermesh
+siemens nx
+creo
+fusion 360
+onshape
+spaceclaim
+matlab
+simulink
+mathcad
+excel
+microsoft word
+powerpoint
+fluidx3d

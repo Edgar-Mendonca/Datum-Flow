@@ -1,0 +1,13 @@
+[package]
+name = "flow-cli"
+description = "Datum Flow engine."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+flow-core.workspace = true
