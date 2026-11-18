@@ -21,6 +21,13 @@ export const setTheme = (t: string) => { setThemeRaw(t); applyTheme(); saveOpts(
 // ---------- where we are
 export type Tab = "home" | "geometry" | "physics" | "mesh" | "solve" | "results" | "check" | "view" | "help";
 export const [tab, setTab] = createSignal<Tab>("home");
+/** The views of the sidebar (FAMILY §6): the first five show the 2D view, the others a page. */
+export type View = "geometry" | "physics" | "mesh" | "solve" | "results" | "values" | "plots" | "checks" | "verification";
+export const [view, setView] = createSignal<View>("geometry");
+export const PAGES: View[] = ["values", "plots", "checks", "verification"];
+/** The step-by-step Setup panel (sidebar › Setup), shown first for a new blank model. */
+export const [setupOpen, setSetupOpen] = createSignal(false);
+export const [setupStep, setSetupStep] = createSignal(0);
 export type Page = "home" | "export" | "print" | "options" | "roadmap" | "about";
 export const [backstage, setBackstage] = createSignal<Page | null>(null);
 export type BottomTab = "residuals" | "monitors" | "checks" | "messages";

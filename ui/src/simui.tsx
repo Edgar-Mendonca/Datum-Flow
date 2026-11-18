@@ -41,7 +41,7 @@ const makeChart = (cv: HTMLCanvasElement, o: { x: string; y: string; log?: boole
 };
 const setSeries = (c: Chart, s: Series[]) => { c.data.datasets = s.map((d, i) => ({ label: d.label, data: d.data, borderColor: d.colour ?? SERIES[i % SERIES.length], backgroundColor: d.colour ?? SERIES[i % SERIES.length] })); c.update("none"); };
 /** A chart that follows its series; a PNG button saves it. */
-const LineChart = (p: { series: () => Series[]; x: string; y: string; log?: boolean; legend?: boolean; name: string; cls?: string }) => {
+export const LineChart = (p: { series: () => Series[]; x: string; y: string; log?: boolean; legend?: boolean; name: string; cls?: string }) => {
   let cv!: HTMLCanvasElement, chart: Chart | null = null;
   // Made again when the theme changes (its axes and legend take the theme's colours), then fed its series.
   onMount(() => {
@@ -93,7 +93,7 @@ const MonitorPanel = () => <div class="spanel"><RunLine />
 
 // ---------------------------------------------------------------- checks
 const goIssue = (i: Issue) => { if (i.boundary) { setSel({ kind: "boundary", id: i.boundary }); setTab("physics"); } else if (/mesh|triangle/i.test(i.text)) { setSel({ kind: "mesh" }); setTab("mesh"); } else if (/turbulent|Re ≈|Ra ≈/.test(i.text)) { setSel({ kind: "solver" }); setTab("solve"); } else if (/heat|temperature|gravity|buoyancy/i.test(i.text)) { setSel({ kind: "physics" }); setTab("physics"); } else { setSel({ kind: "boundaries" }); setTab("physics"); } };
-const ChecksPanel = () => (
+export const ChecksPanel = () => (
   <div class="schecks">
     <For each={issues() ?? []}>{i => <button class={`scheck ${i.level}`} onClick={() => goIssue(i)}><i>{i.level === "ok" ? "✓" : "!"}</i><div><b>{i.text}</b><Show when={i.fix}><span>{i.fix}</span></Show></div></button>}</For>
     <p class="muted">{out()?.has_mesh ? "Checked against the mesh." : "Checked without a mesh: generate it for the full list."} <button class="btn sm" onClick={() => runChecks()}>Check again</button></p>
@@ -153,8 +153,8 @@ export const HoverValues = () => {
 };
 
 // ---------------------------------------------------------------- dialogs
-const valuesTsv = (v: ValueRow[]) => ["Group\tValue\tNumber\tUnit\tNote", ...v.map(r => [r.group, r.name, toU(r.kind, r.value), ulabel(r.kind), r.note].join("\t"))].join("\n");
-const ValuesTable = (p: { rows: ValueRow[] }) => {
+export const valuesTsv = (v: ValueRow[]) => ["Group\tValue\tNumber\tUnit\tNote", ...v.map(r => [r.group, r.name, toU(r.kind, r.value), ulabel(r.kind), r.note].join("\t"))].join("\n");
+export const ValuesTable = (p: { rows: ValueRow[] }) => {
   const groups = () => [...new Set(p.rows.map(r => r.group))];
   return <table class="tbl svals"><tbody><For each={groups()}>{g => <>
     <tr class="sgrp"><th colSpan={3}>{g}</th></tr>
@@ -171,7 +171,7 @@ export const valuesDialog = async () => {
   </Dialog>);
 };
 
-const QUANT: [keyof Sample, string, string][] = [["speed", "Speed", "speed"], ["u", "Velocity x", "speed"], ["v", "Velocity y", "speed"], ["pressure", "Pressure", "pressure"], ["temperature", "Temperature", "temp"], ["vorticity", "Vorticity", "vorticity"]];
+export const QUANT: [keyof Sample, string, string][] = [["speed", "Speed", "speed"], ["u", "Velocity x", "speed"], ["v", "Velocity y", "speed"], ["pressure", "Pressure", "pressure"], ["temperature", "Temperature", "temp"], ["vorticity", "Vorticity", "vorticity"]];
 export const linePlot = async (index: number) => {
   const pts = await call<[number, Sample][]>("line", { index });
   if (!pts) return;
@@ -203,7 +203,7 @@ const csvDialog = () => {
 const TIERS = ["Exact solutions", "Order of accuracy", "Benchmarks", "Validation against experiment", "Regression"];
 const TIER_ABOUT = ["Flows whose answer is known in closed form. The solver must reproduce them.", "As the mesh is refined, the error must fall at the rate the method promises.", "Published high-accuracy results from other researchers.", "Measurements from a laboratory, with their uncertainty.", "This version's results against the previous version's."];
 const pct = (c: Check, v: number) => (c.absolute ? num(v, 3) : `${num(100 * v, 3)}%`);
-const VerTable = (p: { r: Report; print?: boolean }) => {
+export const VerTable = (p: { r: Report; print?: boolean }) => {
   const [open, setOpen] = createSignal<string | null>(null);
   return <For each={TIERS}>{(t, i) => {
     const list = () => p.r.checks.filter(c => c.tier === i() + 1);
@@ -222,7 +222,7 @@ const VerTable = (p: { r: Report; print?: boolean }) => {
     </Show>;
   }}</For>;
 };
-const verSummary = (r: Report) => { const pass = r.checks.filter(c => c.pass).length; return { pass, fail: r.checks.length - pass }; };
+export const verSummary = (r: Report) => { const pass = r.checks.filter(c => c.pass).length; return { pass, fail: r.checks.length - pass }; };
 export const verification = async () => {
   const r = await call<Report>("verification");
   if (!r) return;
@@ -235,7 +235,7 @@ export const verification = async () => {
   </Dialog>);
 };
 /** The verification record as report pages (about 14 rows a page). */
-const verificationPages = (r: Report): (() => JSX.Element)[] => {
+export const verificationPages = (r: Report): (() => JSX.Element)[] => {
   const s = verSummary(r), per = 9, pages: (() => JSX.Element)[] = [];
   for (let i = 0; i < Math.max(1, r.checks.length); i += per) {
     const part = { ...r, checks: r.checks.slice(i, i + per) }, first = i === 0, last = i + per >= r.checks.length;

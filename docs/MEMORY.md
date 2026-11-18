@@ -7,7 +7,7 @@
 | --- | --- |
 | **Product** | Datum Flow: fluid-flow simulation (CFD) on the desktop. Draw or load a geometry, choose a fluid, set inlets, outlets and walls, mesh, solve, and see velocity, pressure and temperature, with pressure drop, flow rate, drag and lift, heat transfer. Every release proves its answers in a built-in verification report |
 | **Tagline** | "Fluid flow simulation: draw it, set the flow, see and check the results." |
-| **Current version** | 0.1.1 (2026-11-12) |
+| **Current version** | 0.1.2 (2026-11-18) |
 | **Repo** | `Edgar-Mendonca/Datum-Flow` · branch `claude/magical-galileo-k8g6qh` (the first branch pushed) |
 | **Stack** | Rust engine (`crates/`, own solver), Tauri 2, SolidJS + strict TypeScript; CPU only (threads), no GPU in 0.x |
 | **Identifier** | `com.edgarmendonca.datumflow` · files `.dflow` (JSON, `format` 1) · installer `DatumFlow-x.y.z-setup.exe` + `SHA256SUMS.txt` · publisher "Datum" |
@@ -83,6 +83,7 @@ flow-core ─▶ flow-mesh ─▶ flow-solve ─▶ flow-post ─▶ flow-verify
 | `ui/src/store.ts`, `api.ts`, `cmds.ts` | State, the commands and their types, the command table (and the stubs not yet wired) |
 | `ui/src/ribbon.tsx`, `backstage.tsx`, `ui.tsx`, `help.tsx`, `roadmap.tsx`, `print.tsx` | The family window: ribbon, File page, dialogs, help cards, roadmap, printing |
 | `ui/src/canvas.tsx` | The 2D view: shapes, grid, edges by boundary, drawing tools, pan and zoom, layers for mesh and results |
+| `ui/src/side.tsx` | The sidebar of views, the step-by-step Setup panel, and the Values, Plots, Checks and Verify pages |
 | `ui/src/tree.tsx`, `inspector.tsx`, `bottom.tsx` | Model tree, inspector, bottom panel (Residuals, Monitors, Checks, Messages) |
 | `tests_ui/run.cjs`, `realapp.sh` | Playwright checks of the window against the real engine; screenshots of the real app |
 | `tools/commercial-names.txt` | Product names that must not appear in public words |
@@ -137,24 +138,51 @@ Bump the version in the root `Cargo.toml`, add the CHANGELOG section, regenerate
 | 0.1.1 | **The backward-facing step has no verdict** | Armaly's reattachment lengths are in a figure that could not be read; the computed lengths (2.85, 4.87, 8.00 step heights at Re 100, 200, 389) are reported under "Not verified" |
 | 0.1.1 | **The stream-function minimum is searched inside elements**, not only at nodes | The node value alone was 4e-5 short of the published cavity value |
 | 0.1.1 | **The brief's steps 2 to 6 ship as one release, 0.1.1** | They were finished together; the build budget says release in batches, and version numbers may not jump |
+| 0.1.2 | **The family sidebar (66 px, icon + mono label, Setup first, groups split by rules), with the model tree kept beside it** | The user asked for the left pane of every Datum app; Plot has the same pair (sidebar + navigator), and the brief asked for the tree |
+| 0.1.2 | **Ten views:** Geometry, Physics, Mesh, Solve, Results show the 2D view (each brings its ribbon tab, and a ribbon tab lights its view); Values, Plots, Checks, Verify are pages laid over the 2D view, which stays mounted | Pages need the width; the view keeps its zoom and layers underneath |
+| 0.1.2 | **Setup is a step-by-step panel on the right, in the properties' place** (as in Datum Plan), opened by itself for a new blank model; picking anything shows its properties with "Back to Setup" | Datum Plan's pattern; the properties are still needed to type exact sizes while setting up |
+| 0.1.2 | **The roadmap is written one three-number release per line**, from 0.1.3 to 1.0.0 (site.json, this file, File › Roadmap) | The user asked for the versions broken down to three numbers; small numbered releases (FAMILY §9) |
 | 0.1.0 | **The window shell was built by a parallel worker session from Datum Plan's shell**, with a bridge so UI tests drive the real engine | Speed; the engine and the shell meet only at `wire::Out` and `Op` |
 
 ## 3. Roadmap
 
+Every release is one small three-number version (FAMILY §9); each line below is one release.
+
 | Version | Scope | State |
 | --- | --- | --- |
 | 0.1.0 | Skeleton: window, drawing, fluid, boundaries, files, updater, CI, release with provenance | ✅ |
-| 0.1.1 | Everything else of the brief's 0.1, in one release: mesher with refinement and quality report; checks before solving; solver with live residuals, monitors, stop, resume, continuation and advice; contours, arrows, streamlines, probes, line plots, values; heat and buoyancy; the six examples; the verification report in the app and in `docs/VERIFICATION.md`; PDF report, VTU, CSV, PNG; DXF import; `flow-cli`; help cards; screenshots | ✅ |
-| 0.1.2 | After the user's review of 0.1.1: fixes and polish; reference values checked against the original papers (and the step's measured lengths, to give it a verdict); a drawn-arc tool; a manual legend range; true quadratic shading of contours; long tables flowing over pages in the PDF report | 🔜 |
-| 0.2 | **Transient:** time-dependent flow (vortex shedding, the Re 100 benchmark with Strouhal number); SUPG; animations; monitors over time | ⬜ |
-| 0.3 | **Walls and solids:** boundary-layer meshing with a y+ helper; conjugate heat transfer; axisymmetric flow | ⬜ |
-| 0.4 | **Bigger models:** iterative solvers with preconditioners; parallel assembly; parameter sweeps | ⬜ |
-| 0.5 | **The 3D decision:** 3D finite elements or finite volumes, chosen with measurements; first 3D laminar cases; 3D meshing (fTetWild or Netgen) | ⬜ |
-| 0.6 | **External solvers (optional):** case files for SU2 and OpenFOAM, run as separate programs, results read back | ⬜ |
-| 0.7 | **Turbulence:** wall distance, Spalart–Allmaras, k-ω SST, each verified | ⬜ |
-| 0.8 | **CAD and family links:** STEP import; geometry from Datum Layout; line data from Datum Schema; pressures and temperatures into Datum Mesh | ⬜ |
-| 0.9 | **Teaching pack:** guided lessons on the classic cases | ⬜ |
-| 1.0 | Full verification and validation report, user guide, signed installer | ⬜ |
+| 0.1.1 | Mesh, checks, solve, results, heat and buoyancy, examples, verification report, exports, DXF, `flow-cli` | ✅ |
+| 0.1.2 | The family sidebar (Setup first, then Geometry, Physics, Mesh, Solve, Results, Values, Plots, Checks, Verify), the step-by-step Setup panel, the Values, Plots, Checks and Verify pages; the roadmap in three-number releases | ✅ |
+| 0.1.3 | **Reference values from the papers:** every benchmark value checked against its original paper, and marked so in the verification report; the backward-facing step compared with the measurements of Armaly et al. (1983), with a verdict | 🔜 |
+| 0.1.4 | **Results kept with the model:** results saved in the .dflow file, so a model opens solved; a manual range for the colour legend | 🔜 |
+| 0.1.5 | **Drawing and the report:** a drawn-arc tool and rounded corners; contours shaded with the elements' true curved values; long tables flow over pages in the PDF report | ⬜ |
+| 0.1.6 | **Guide and tutorial:** help › Guide: a printable user guide with pictures of the real window; help › Tutorial: one example that uses every view, with a note on each | ⬜ |
+| 0.2.0 | **Time-dependent flow:** time stepping, with the step size chosen for accuracy; verified against flows that start from rest and have an exact answer | ⬜ |
+| 0.2.1 | **Vortex shedding:** the cylinder in a channel at Re 100: the benchmark's largest drag and lift and its Strouhal number in the verification report | ⬜ |
+| 0.2.2 | **Faster flows:** stabilisation for flows where convection dominates, so coarser meshes stay smooth | ⬜ |
+| 0.2.3 | **Animations:** play the flow through time; monitors plotted over time; save frames as pictures | ⬜ |
+| 0.2.4 | **Transient heat:** heating and cooling over time, with natural convection | ⬜ |
+| 0.3.0 | **Boundary layers:** thin layers of elements along walls, with a wall-distance helper | ⬜ |
+| 0.3.1 | **Pipes and nozzles:** axisymmetric flow, verified against the exact flow in a round pipe | ⬜ |
+| 0.3.2 | **Heat through solids:** solid parts beside the fluid, heat passing through both | ⬜ |
+| 0.3.3 | **Heat-sink cases:** fins with their own conduction, and their benchmarks | ⬜ |
+| 0.4.0 | **Iterative solvers:** iterative linear solvers with preconditioners, for models too big for the direct one | ⬜ |
+| 0.4.1 | **Bigger models:** assembly on every core; meshes of a million unknowns | ⬜ |
+| 0.4.2 | **Parameter sweeps:** run one model over a range of speeds, temperatures or sizes, with a table of the results | ⬜ |
+| 0.5.0 | **The 3D decision:** 3D finite elements or finite volumes, chosen with measurements and written up | ⬜ |
+| 0.5.1 | **3D meshing:** tetrahedral meshes of 3D regions | ⬜ |
+| 0.5.2 | **First 3D cases:** 3D cavity and 3D cylinder benchmarks | ⬜ |
+| 0.6.0 | **External solver: SU2:** write SU2 cases, run SU2 as a separate program you install, read the results back | ⬜ |
+| 0.6.1 | **External solver: OpenFOAM:** the same for OpenFOAM | ⬜ |
+| 0.7.0 | **Turbulence: one equation:** wall distance and the Spalart–Allmaras model, verified on published cases | ⬜ |
+| 0.7.1 | **Turbulence: two equations:** the k-ω SST model, verified on published cases | ⬜ |
+| 0.7.2 | **Turbulence checks:** flat plate, bump and step cases in the verification report | ⬜ |
+| 0.8.0 | **STEP import:** 3D and 2D outlines from STEP files | ⬜ |
+| 0.8.1 | **Family links in:** geometry from Datum Layout; line data from Datum Schema | ⬜ |
+| 0.8.2 | **Family links out:** pressures and temperatures into Datum Mesh | ⬜ |
+| 0.9.0 | **Teaching pack:** guided lessons on the classic cases, each with its theory and reference data | ⬜ |
+| 0.9.1 | **What went wrong:** a mode that shows the common mistakes in a setup and what they do to the answer | ⬜ |
+| 1.0.0 | **Version 1:** full verification and validation report, user guide, signed installer | ⬜ |
 
 ## 4. Session log
 
@@ -176,6 +204,12 @@ Bump the version in the root `Cargo.toml`, add the CHANGELOG section, regenerate
 - Released 0.1.1. The brief's steps 2 to 6 shipped together (see Decisions).
 - **Cut or not done:** nothing from the brief's cut list was cut (DXF import, the heat-sink example, VTU export and vorticity contours are all in). Not done: the guide and Help › Tutorial (FAMILY §10, not in the brief); multi-document tabs; a drawn-arc tool (arcs are typed as a bulge); Windows/macOS test jobs in CI (the build budget asks for Linux only; Windows runs nightly and at release).
 - **2-minute demo:** File › Examples › Flow past a cylinder, Re 20 → Home › Solve (about 5 s: watch the residuals fall) → Results: speed contours with streamlines; Results › Values: "Drag on the cylinder" 0.01116 N (× 500 = drag coefficient 5.58) → Help › Verification: 36 of 36 checks pass, the cylinder row among them.
+
+### 2026-11-18: Session 2 (0.1.2: the sidebar, Setup, the roadmap in three-number releases)
+- The user confirmed 0.1.1 works on their computer (the first run of the Windows installer and app), and asked for the versions broken down to three numbers and for the left pane of every Datum app, both in 0.1.2.
+- The sidebar (from Datum Plan and Datum Plot), the Setup panel (from Datum Plan's pattern) and four pages; 14 new UI checks (133 in all).
+- The roadmap: one line per release from 0.1.3 to 1.0.0.
+- Released 0.1.2. Still owed for 0.1.3: the reference values against the original papers, which needs the papers or network access to them.
 
 ## 5. Known limits
 

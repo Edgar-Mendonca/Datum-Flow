@@ -631,3 +631,60 @@ button.irow:hover, .irow span:hover { color: var(--blue); }
 .rpage .muted { color: #5B6878; } .rpage .vtier small { color: #5B6878; } .rpage .vmore td { background: #F8F9FB; color: #3B4859; font-size: 9.5px; }
 .rpage .chip.ok { background: #DDF2E5; color: #1F7A4D; } .rpage .chip.bad { background: #FBE3E0; color: #9B2C2C; }
 .rpage .svals tr.sgrp th { background: #F3F5F8; }
+
+/* ---- sidebar (FAMILY §6, as in every Datum app) */
+.side { width: 66px; flex: none; background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding-top: 4px; overflow-y: auto; }
+.side button { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; color: var(--text2); border-left: 3px solid transparent; }
+.side button svg { width: 20px; height: 20px; }
+.side button span { font: 500 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.side button:hover { background: var(--pale); color: var(--blue); }
+.side button.on { background: var(--bg2); color: var(--blue); border-left-color: var(--blue); font-weight: 600; }
+.side hr { border: 0; border-top: 1px solid var(--line); width: 70%; margin: 4px auto; }
+.side .sbadge { position: absolute; top: 3px; right: 8px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--amber); color: #fff; font: 600 9px/14px var(--mono); font-style: normal; }
+.side button.bad .sbadge { background: var(--crit); }
+.stage { flex: 1; display: flex; min-width: 0; min-height: 0; position: relative; }
+
+/* ---- pages of the sidebar (Values, Plots, Checks, Verification) */
+.pgview { position: absolute; inset: 0; z-index: 5; background: var(--bg); display: flex; flex-direction: column; min-height: 0; }
+.pgview > header { display: flex; align-items: flex-end; gap: 8px; padding: 18px 26px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.pgview h1 { font-size: 23px; font-weight: 700; margin: 0 0 4px; display: flex; align-items: center; gap: 6px; }
+.pgview > header p { margin: 0; color: var(--text2); max-width: 760px; font-size: 12.5px; }
+.pgbody { flex: 1; overflow: auto; padding: 16px 26px 28px; }
+.pgbody > .tbl, .pgbody > table { background: var(--bg2); }
+.pgcard { background: var(--bg2); border: 1px solid var(--line); padding: 12px 14px; margin-bottom: 14px; }
+.pgcard h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 500 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.pgcard h3 .muted { font: 400 11.5px var(--sans, inherit); letter-spacing: 0; text-transform: none; }
+.pgcard h3 select { font-size: 12px; }
+.pgempty { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 70px auto; max-width: 420px; text-align: center; color: var(--muted); }
+.pgempty b { color: var(--text); font-size: 14px; } .pgempty > div { display: flex; gap: 8px; margin-top: 8px; }
+.pgnums { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.pgnums div { border: 1px solid var(--line2); padding: 6px 12px; min-width: 120px; display: flex; flex-direction: column; }
+.pgnums small { font: 500 9.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.pgnums b { font: 600 16px var(--mono); }
+.pgok { color: var(--ok-fg); background: var(--ok-bg); padding: 6px 9px; }
+.pgwarn { color: var(--warn-fg); background: var(--warn-bg); padding: 6px 9px; }
+
+/* ---- the Setup panel */
+.setup { width: 300px; flex: none; border-left: 1px solid var(--line); box-shadow: -4px 0 14px rgba(20,50,94,.06); background: var(--bg2); display: flex; flex-direction: column; min-height: 0; }
+.setup > header { display: flex; align-items: center; gap: 4px; height: 27px; padding: 0 8px; border-bottom: 1px solid var(--line); background: var(--panel); flex: none; }
+.setup > header b { font: 500 9.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.setup > header .x { font-size: 16px; padding: 0 4px; color: var(--muted); }
+.ssteps { list-style: none; margin: 0; padding: 6px 0; border-bottom: 1px solid var(--line); flex: none; }
+.ssteps li { display: flex; align-items: center; gap: 8px; padding: 4px 12px; cursor: pointer; color: var(--text2); font-size: 12px; }
+.ssteps li:hover { background: var(--pale); }
+.ssteps li i { width: 18px; height: 18px; border: 1px solid var(--line3); border-radius: 50%; display: grid; place-items: center; font: 500 10px var(--mono); font-style: normal; flex: none; }
+.ssteps li.done i { background: var(--ok-bg); border-color: var(--green); color: var(--green); }
+.ssteps li.on { background: var(--sel); color: var(--blue); font-weight: 600; }
+.ssteps li.on i { background: var(--blue); border-color: var(--blue); color: var(--bg2); }
+.sbody { flex: 1; overflow: auto; padding: 12px 14px; font-size: 12.5px; line-height: 1.5; }
+.sbody h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 14px; }
+.sbody h3 svg { width: 18px; height: 18px; color: var(--blue); }
+.sbody p { margin: 0 0 10px; } .sbody .form { grid-template-columns: 60px 1fr; margin-bottom: 10px; }
+.sbody .chk { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.srow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.stpl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+.stpl button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; border: 1px solid var(--line); background: var(--panel); font-size: 11px; }
+.stpl button:hover { border-color: var(--blue); color: var(--blue); }
+.stpl svg { width: 22px; height: 22px; }
+.setup > footer { display: flex; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--line); flex: none; }
+@media print { .side, .setup, .pgview { display: none !important; } }

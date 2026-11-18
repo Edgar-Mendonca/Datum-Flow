@@ -1,6 +1,6 @@
 // Commands: one place for everything the ribbon, the shortcuts and Tell Me can run. Commands
 // whose engine part is not there yet go through `cmd(name)`, which says so in a toast.
-import { call, loadOut, out, setBackstage, setTab, setSel, setTool, setPickFor, setAsHole, toast, act, opts, saveOpts, setBottom, setBottomOpen, openDialog, closeDialog, setTheme, theme, tool, sel, asHole, Tab, running } from "./store";
+import { setSetupOpen, setSetupStep, setView, call, loadOut, out, setBackstage, setTab, setSel, setTool, setPickFor, setAsHole, toast, act, opts, saveOpts, setBottom, setBottomOpen, openDialog, closeDialog, setTheme, theme, tool, sel, asHole, Tab, running } from "./store";
 import { BcKind, Boundary, Out } from "./api";
 import { fit, zoomBy, viewPicture } from "./canvas";
 import { askYes, askPick } from "./ui";
@@ -44,7 +44,7 @@ const newBoundary = async (kind: BcKind) => {
 
 export const C = {
   // file
-  newModel: async (id = "empty") => { if (await sure("Start a new model")) { const o = await loadOut("new_doc", { id }); if (o) { setBackstage(null); setSel({ kind: "model" }); setTool("select"); setTab(id === "empty" ? "geometry" : "home"); } } },
+  newModel: async (id = "empty") => { if (await sure("Start a new model")) { const o = await loadOut("new_doc", { id }); if (o) { setBackstage(null); setSel({ kind: "model" }); setTool("select"); setTab(id === "empty" ? "geometry" : "home"); setView("geometry"); setSetupOpen(id === "empty"); setSetupStep(0); } } },
   open: async (path?: string) => { if (await sure("Open another model")) { const o = await loadOut("open", { path: path ?? null }); if (o) { setBackstage(null); setSel({ kind: "model" }); setTool("select"); } } },
   save: async (asNew = false) => { const o = await loadOut("save", { path: null, asNew }); if (o) toast(`Saved ${(o as Out).path}`, true); },
   print: () => setBackstage("print"),

@@ -2,7 +2,7 @@
 // edit sent to the engine (`act`); the window never works a result out itself.
 import { For, Show, Switch, Match, JSX, createSignal, createMemo } from "solid-js";
 import { Geom, Pt, Shape, Boundary, Fluid, MeshSettings, SolverSettings, Physics, Target, Monitor, MonitorKind, View, num, invoke } from "./api";
-import { out, M, sel, setSel, act, fmt, toU, fromU, ulabel, toast, setTool, tool, pickFor, setPickFor, boundaryOf, shapeOf, edgeInfo, KIND_NAME, sameEdge, snapOn, setSnapOn, opts, saveOpts } from "./store";
+import { out, M, sel, setSel, act, fmt, toU, fromU, ulabel, toast, setTool, tool, pickFor, setPickFor, boundaryOf, shapeOf, edgeInfo, KIND_NAME, sameEdge, snapOn, setSnapOn, opts, saveOpts, setupOpen } from "./store";
 import { Icon, Num, Pick, Check, Text, Seg, askText } from "./ui";
 import { Help } from "./help";
 import { C, cmd } from "./cmds";
@@ -370,7 +370,7 @@ export const Inspector = () => {
   const s = sel;
   return (
     <aside class="insp">
-      <header><b>Properties</b><Help k="inspector" /></header>
+      <header><b>Properties</b><Help k="inspector" /><Show when={setupOpen()}><span class="grow" /><button class="btn sm" title="Back to the Setup steps" onClick={() => setSel({ kind: "model" })}>Back to Setup</button></Show></header>
       <div class="ibody">
         <Switch fallback={<ModelCard />}>
           <Match when={s().kind === "geometry"}><GeometryCard /></Match>

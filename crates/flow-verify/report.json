@@ -1,6 +1,6 @@
 {
-  "version": "0.1.1",
-  "date": "2026-11-12",
+  "version": "0.1.2",
+  "date": "2026-11-18",
   "checks": [
     {
       "tier": 1,
@@ -776,7 +776,7 @@
     },
     {
       "tier": 5,
-      "case": "Compared with 0.1.0",
+      "case": "Compared with 0.1.1",
       "quantity": "Values unchanged since the last release, of those compared",
       "reference": 35.0,
       "result": 35.0,
@@ -784,7 +784,7 @@
       "tolerance": 35.0,
       "absolute": true,
       "pass": true,
-      "source": "Datum Flow 0.1.0",
+      "source": "Datum Flow 0.1.1",
       "confirmed": "exact",
       "note": "Each value that changed is listed below with its old and new value.",
       "steps": []
@@ -797,6 +797,6 @@
     "Symmetry and slip edges, heat-flux boundaries, moving walls other than a lid, and the light-oil and US-unit paths have unit tests but no benchmark row.",
     "The Reynolds and Rayleigh limits of the turbulence warning are rules of thumb, not verified transition points."
   ],
-  "seconds": 359.0,
+  "seconds": 446.0,
   "machine": "4 threads, linux x86_64"
 }

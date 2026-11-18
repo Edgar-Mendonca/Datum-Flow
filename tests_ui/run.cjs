@@ -168,6 +168,15 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
   check("leaving a changed model asks first", (await text(".dlg")).includes("not saved"));
   await hear(); await p.click('.dlg .btn.pri'); await p.waitForTimeout(250);
   check("a blank model shows what to do first", (await text(".vempty")).includes("Draw the flow region") && (await state()).m.shapes.length === 0);
+  check("a blank model opens the Setup steps on the right, at step 1", (await text(".setup")).includes("Name and units") && (await p.locator(".setup .ssteps li").count()) === 7 && (await p.locator(".setup .ssteps li.on").innerText()).includes("Name and units"));
+  await p.click('.setup footer .btn.pri'); await p.waitForTimeout(80);
+  check("Next goes to the Geometry step, with the templates", (await p.locator(".setup .ssteps li.on").innerText()).includes("Geometry") && (await p.locator(".setup .stpl button").count()) === 5);
+  await shot("04b-setup");
+  await p.click(".setup header .x"); await p.waitForTimeout(80);
+  check("Setup closes, and the properties come back", (await p.locator(".setup").count()) === 0 && (await p.locator(".insp").count()) === 1);
+  await p.click('.side button:has-text("Setup")'); await p.waitForTimeout(80);
+  check("Sidebar › Setup opens it again", (await p.locator(".setup").count()) === 1);
+  await p.click(".setup header .x"); await p.waitForTimeout(80);
   await shot("04-empty"); await hear();
   await tab("Geometry");
   await p.click('.ribbon .rb:has-text("Rectangle")');
@@ -427,6 +436,38 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
   await p.click(".bs aside .back"); await p.waitForTimeout(150);
   await p.evaluate(() => { window.__verification = null; });
   if (realVer.checks.length) { await rb("Help", "Verification"); await p.waitForTimeout(400); await site("verification-report"); await p.keyboard.press("Escape"); }
+
+  // ---------- the sidebar (FAMILY §6): its views, and the pages
+  const sideLabels = await p.evaluate(() => [...document.querySelectorAll(".side button span")].map(e => e.textContent));
+  check("the sidebar lists Setup first, then the views in order, in groups", sideLabels.join(",") === "Setup,Geometry,Physics,Mesh,Solve,Results,Values,Plots,Checks,Verify" && (await p.locator(".side hr").count()) === 4, sideLabels.join(","));
+  await openExample("Flow past a cylinder, Re 20");
+  await p.click('.side button:has-text("Values")'); await p.waitForTimeout(250);
+  check("Values without results says what it is for and offers Solve", (await text(".pgview")).includes("No results yet") && (await p.locator(".pgview .pgempty .btn.pri:has-text('Solve')").count()) === 1);
+  await p.click(".pgview .pgempty .btn.pri"); await solved();
+  check("Solve from the page opens the Solve view with its ribbon tab", (await p.locator(".side button.on span").innerText()) === "SOLVE" || (await p.locator(".side button.on span").innerText()) === "Solve" || (await p.locator(".side button.on").innerText()).toLowerCase().includes("results"));
+  await p.click('.side button:has-text("Values")'); await p.waitForTimeout(500);
+  check("the Values page lists the drag on the cylinder", /Drag on the cylinder\s+0\.0111/.test(await text(".pgview")), (await text(".pgview")).slice(0, 300));
+  check("a page hides the 2D view's properties and covers the view", (await p.locator(".pgview").count()) === 1 && await p.evaluate(() => { const r = document.querySelector(".pgview").getBoundingClientRect(), c = document.querySelector(".viewwrap").getBoundingClientRect(); return r.left <= c.left && r.right >= c.right; }));
+  await shot("24-values-page"); await hear();
+  await p.click('.side button:has-text("Plots")'); await p.waitForTimeout(700);
+  check("the Plots page shows the probes and a chart for every line", (await text(".pgview")).includes("Front of the cylinder") && (await p.locator(".pgview .pgcard canvas").count()) === (await state()).m.lines.length && (await state()).m.lines.length >= 1);
+  await shot("25-plots-page"); await hear();
+  await p.click('.side button:has-text("Checks")'); await p.waitForTimeout(400);
+  check("the Checks page gives the flow's numbers and the setup check", (await text(".pgview")).includes("Reynolds number") && (await text(".pgview")).includes("Ready to solve"));
+  await hear();
+  await p.click('.side button:has-text("Verify")'); await p.waitForTimeout(400);
+  check("the Verify page shows the record of this version", (await text(".pgview")).includes(`Datum Flow ${realVer.version}`) && (await text(".pgview")).includes("checks pass"));
+  await shot("26-verify-page"); await hear();
+  await p.click('.side button:has-text("Geometry")'); await p.waitForTimeout(150);
+  check("Sidebar › Geometry brings back the 2D view and the Geometry tab", (await p.locator(".pgview").count()) === 0 && (await p.locator('.tabs button.on').innerText()).includes("Geometry"));
+  await tab("Results");
+  check("a ribbon tab of a view lights its sidebar button", (await p.locator(".side button.on").innerText()).toLowerCase().includes("results"));
+  await p.click('.side button:has-text("Physics")'); await p.waitForTimeout(80);
+  await p.click('.tree .ti:has-text("Outlet")'); await p.keyboard.press("Delete"); await p.waitForTimeout(200);
+  await p.click('.side button:has-text("Checks")'); await p.waitForTimeout(400);
+  check("an error shows as a red badge on Checks in the sidebar", (await p.locator(".side button.bad .sbadge").count()) === 1 && (await text(".pgview")).includes("no boundary"), await text(".side"));
+  await p.keyboard.press("Control+z"); await p.waitForTimeout(150);
+  await p.click('.side button:has-text("Geometry")'); await p.waitForTimeout(100);
 
   // Stop and resume
   await openExample("Lid-driven cavity, Re 100");

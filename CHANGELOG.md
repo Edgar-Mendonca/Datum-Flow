@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.2 — 2026-11-18
+
+The Datum sidebar: every view one click away, and a step-by-step Setup for new models.
+
+- **Sidebar.** As in every Datum app: one icon and label per view, Setup first, then Geometry, Physics and Mesh, then Solve and Results, then the pages of numbers: Values, Plots, Checks and Verify. The five views of the model show the 2D view with their ribbon tab; choosing a ribbon tab lights its view in the sidebar. The model tree stays beside it.
+- **Setup.** A step-by-step panel on the right: name and units, geometry (or a template), fluid, heat, boundaries, mesh, then check and solve. Each step says what it is for and ticks itself when it is done. It opens by itself for a new blank model; reopen it from Setup in the sidebar. Picking a shape, an edge or a boundary shows its properties, with a button back to the steps.
+- **Values page.** The values table on a full page: monitors, flow through each inlet and outlet, pressure drops, forces, heat flows, Nusselt numbers, the mass and heat balances and the extremes. Copy it as a table.
+- **Plots page.** The probes in one table, and a chart for every line drawn across the flow, each with the quantity to plot and its CSV.
+- **Checks page.** What kind of flow this is (Reynolds, Rayleigh and Prandtl numbers, with the speed and length they come from) and the full setup check. The sidebar shows a count of what needs attention, in red when something stops the solve.
+- **Verify page.** The verification record of this version on a full page, as in Help › Verification.
+- **Roadmap.** File › Roadmap lists the next releases one by one, each a small three-number version, up to 1.0.0.
+
 ## 0.1.1 — 2026-11-12
 
 Mesh, solve and see the results: Datum Flow now simulates 2D steady laminar flow with heat and natural convection, and proves its answers.

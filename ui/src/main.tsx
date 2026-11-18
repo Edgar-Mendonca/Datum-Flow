@@ -1,4 +1,5 @@
-// Datum Flow window: layout (ribbon, model tree, 2D view, inspector, bottom panel, status bar),
+// Datum Flow window: layout (ribbon, sidebar, model tree or Setup, 2D view or a page, inspector,
+// bottom panel, status bar),
 // keyboard shortcuts, start-up and recovery.
 import { render } from "solid-js/web";
 import { For, Show, onMount } from "solid-js";
@@ -11,7 +12,7 @@ import "@fontsource/ibm-plex-mono/latin-500.css";
 import "@fontsource/ibm-plex-mono/latin-600.css";
 import "./styles.css";
 import { invoke, listen, Out, Options, num } from "./api";
-import { out, setOut, backstage, setBackstage, setOpts, opts, dialogs, call, openDialog, toast, setThemeRaw, applyTheme, treeOpen, inspOpen, setSnapOn, setShowGrid, tool, setSel, setTab, toU, ulabel, loadOut, M } from "./store";
+import { out, setOut, backstage, setBackstage, setOpts, opts, dialogs, call, openDialog, toast, setThemeRaw, applyTheme, treeOpen, inspOpen, setupOpen, view, PAGES, setSnapOn, setShowGrid, tool, setSel, sel, setTab, toU, ulabel, loadOut, M } from "./store";
 import { C } from "./cmds";
 import { TitleBar, Ribbon, palette } from "./ribbon";
 import { Canvas, xf, cursor, viewSize } from "./canvas";
@@ -25,6 +26,7 @@ import * as H from "./help";
 import { initSim } from "./sim";
 import { initDraw } from "./draw";
 import { initSimUi, SimOverlay, HoverValues } from "./simui";
+import { Side, SetupPanel, ViewPage } from "./side";
 
 const TOOL_NAME: Record<string, string> = { select: "Select", pan: "Pan", rect: "Rectangle", circle: "Circle", poly: "Polygon", pick: "Pick edges" };
 
@@ -57,6 +59,10 @@ const confirmClose = () => openDialog(() => (
     <p>“{out()?.m.name}” has changes that are not saved.</p>
   </Dialog>
 ));
+
+/** Anything picked in the tree or the view shows its properties in the Setup panel's place, until
+ *  Back to Setup. */
+const picked = () => sel().kind !== "model";
 
 const App = () => {
   initSim(); initDraw(); initSimUi();
@@ -98,9 +104,15 @@ const App = () => {
       <Ribbon />
       <main class="work">
         <Show when={out()}>
+          <Side />
           <Show when={treeOpen()}><Tree /></Show>
-          <div class="centre"><div class="viewwrap"><Canvas /><SimOverlay /></div><Bottom /></div>
-          <Show when={inspOpen()}><Inspector /></Show>
+          {/* The 2D view stays mounted under a page, so it keeps its size, zoom and layers. */}
+          <div class="stage">
+            <div class="centre"><div class="viewwrap"><Canvas /><SimOverlay /></div><Bottom /></div>
+            {/* Setup sits where the properties are while it is open, as in Datum Plan. */}
+            <Show when={setupOpen() && !picked()} fallback={<Show when={inspOpen() || setupOpen()}><Inspector /></Show>}><SetupPanel /></Show>
+            <Show when={PAGES.includes(view())}><ViewPage /></Show>
+          </div>
         </Show>
       </main>
       <Status />

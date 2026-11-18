@@ -24,6 +24,7 @@
     }
   ],
   "highlights": [
+    "The Datum window: ribbon, sidebar of views, a step-by-step Setup, printing and an updater",
     "2D steady laminar flow, with heat and natural convection",
     "Its own finite-element solver, written in Rust, inside the app",
     "Automatic meshing with refinement at walls, corners and wakes, and a mesh quality report",
@@ -41,86 +42,246 @@
   ],
   "roadmap": [
     {
-      "v": "0.1.2",
-      "title": "After your review",
+      "v": "0.1.3",
+      "title": "Reference values from the papers",
       "when": "Next",
       "items": [
-        "Fixes and polish from the first review of 0.1.1",
-        "Reference values checked against the original papers",
-        "A drawn-arc tool and a manual range for the colour legend"
+        "Every benchmark value checked against its original paper, and marked so in the verification report",
+        "The backward-facing step compared with the measurements of Armaly et al. (1983), with a verdict"
       ]
     },
     {
-      "v": "0.2",
-      "title": "Transient",
+      "v": "0.1.4",
+      "title": "Results kept with the model",
+      "when": "Next",
+      "items": [
+        "Results saved in the .dflow file, so a model opens solved",
+        "A manual range for the colour legend"
+      ]
+    },
+    {
+      "v": "0.1.5",
+      "title": "Drawing and the report",
       "when": "Soon",
       "items": [
-        "Time-dependent flow: vortex shedding behind the cylinder",
-        "Animations and monitors over time"
+        "A drawn-arc tool and rounded corners",
+        "Contours shaded with the elements' true curved values",
+        "Long tables flow over pages in the PDF report"
       ]
     },
     {
-      "v": "0.3",
-      "title": "Walls and solids",
+      "v": "0.1.6",
+      "title": "Guide and tutorial",
+      "when": "Soon",
+      "items": [
+        "Help › Guide: a printable user guide with pictures of the real window",
+        "Help › Tutorial: one example that uses every view, with a note on each"
+      ]
+    },
+    {
+      "v": "0.2.0",
+      "title": "Time-dependent flow",
+      "when": "Soon",
+      "items": [
+        "Time stepping, with the step size chosen for accuracy",
+        "Verified against flows that start from rest and have an exact answer"
+      ]
+    },
+    {
+      "v": "0.2.1",
+      "title": "Vortex shedding",
+      "when": "Soon",
+      "items": [
+        "The cylinder in a channel at Re 100: the benchmark's largest drag and lift and its Strouhal number in the verification report"
+      ]
+    },
+    {
+      "v": "0.2.2",
+      "title": "Faster flows",
+      "when": "Soon",
+      "items": [
+        "Stabilisation for flows where convection dominates, so coarser meshes stay smooth"
+      ]
+    },
+    {
+      "v": "0.2.3",
+      "title": "Animations",
+      "when": "Soon",
+      "items": [
+        "Play the flow through time; monitors plotted over time",
+        "Save frames as pictures"
+      ]
+    },
+    {
+      "v": "0.2.4",
+      "title": "Transient heat",
+      "when": "Soon",
+      "items": [
+        "Heating and cooling over time, with natural convection"
+      ]
+    },
+    {
+      "v": "0.3.0",
+      "title": "Boundary layers",
       "when": "Later",
       "items": [
-        "Boundary-layer meshing",
-        "Heat through solid parts and the fluid together",
-        "Axisymmetric flow: pipes and nozzles"
+        "Thin layers of elements along walls, with a wall-distance helper"
       ]
     },
     {
-      "v": "0.4",
+      "v": "0.3.1",
+      "title": "Pipes and nozzles",
+      "when": "Later",
+      "items": [
+        "Axisymmetric flow, verified against the exact flow in a round pipe"
+      ]
+    },
+    {
+      "v": "0.3.2",
+      "title": "Heat through solids",
+      "when": "Later",
+      "items": [
+        "Solid parts beside the fluid, heat passing through both"
+      ]
+    },
+    {
+      "v": "0.3.3",
+      "title": "Heat-sink cases",
+      "when": "Later",
+      "items": [
+        "Fins with their own conduction, and their benchmarks"
+      ]
+    },
+    {
+      "v": "0.4.0",
+      "title": "Iterative solvers",
+      "when": "Later",
+      "items": [
+        "Iterative linear solvers with preconditioners, for models too big for the direct one"
+      ]
+    },
+    {
+      "v": "0.4.1",
       "title": "Bigger models",
       "when": "Later",
       "items": [
-        "Iterative solvers and parallel assembly",
-        "Parameter sweeps"
+        "Assembly on every core; meshes of a million unknowns"
       ]
     },
     {
-      "v": "0.5",
+      "v": "0.4.2",
+      "title": "Parameter sweeps",
+      "when": "Later",
+      "items": [
+        "Run one model over a range of speeds, temperatures or sizes, with a table of the results"
+      ]
+    },
+    {
+      "v": "0.5.0",
       "title": "The 3D decision",
       "when": "Later",
       "items": [
-        "First 3D laminar cases and 3D meshing"
+        "3D finite elements or finite volumes, chosen with measurements and written up"
       ]
     },
     {
-      "v": "0.6",
-      "title": "External solvers (optional)",
+      "v": "0.5.1",
+      "title": "3D meshing",
       "when": "Later",
       "items": [
-        "Write cases for SU2 and OpenFOAM, run them as separate programs the user installs, read the results back"
+        "Tetrahedral meshes of 3D regions"
       ]
     },
     {
-      "v": "0.7",
-      "title": "Turbulence",
+      "v": "0.5.2",
+      "title": "First 3D cases",
       "when": "Later",
       "items": [
-        "Spalart–Allmaras, then k-ω SST, each verified against published cases"
+        "3D cavity and 3D cylinder benchmarks"
       ]
     },
     {
-      "v": "0.8",
-      "title": "CAD and family links",
+      "v": "0.6.0",
+      "title": "External solver: SU2",
       "when": "Later",
       "items": [
-        "STEP import",
-        "Geometry from Datum Layout, line data from Datum Schema, pressures and temperatures into Datum Mesh"
+        "Write SU2 cases, run SU2 as a separate program you install, read the results back"
       ]
     },
     {
-      "v": "0.9",
+      "v": "0.6.1",
+      "title": "External solver: OpenFOAM",
+      "when": "Later",
+      "items": [
+        "The same for OpenFOAM"
+      ]
+    },
+    {
+      "v": "0.7.0",
+      "title": "Turbulence: one equation",
+      "when": "Later",
+      "items": [
+        "Wall distance and the Spalart–Allmaras model, verified on published cases"
+      ]
+    },
+    {
+      "v": "0.7.1",
+      "title": "Turbulence: two equations",
+      "when": "Later",
+      "items": [
+        "The k-ω SST model, verified on published cases"
+      ]
+    },
+    {
+      "v": "0.7.2",
+      "title": "Turbulence checks",
+      "when": "Later",
+      "items": [
+        "Flat plate, bump and step cases in the verification report"
+      ]
+    },
+    {
+      "v": "0.8.0",
+      "title": "STEP import",
+      "when": "Later",
+      "items": [
+        "3D and 2D outlines from STEP files"
+      ]
+    },
+    {
+      "v": "0.8.1",
+      "title": "Family links in",
+      "when": "Later",
+      "items": [
+        "Geometry from Datum Layout; line data from Datum Schema"
+      ]
+    },
+    {
+      "v": "0.8.2",
+      "title": "Family links out",
+      "when": "Later",
+      "items": [
+        "Pressures and temperatures into Datum Mesh"
+      ]
+    },
+    {
+      "v": "0.9.0",
       "title": "Teaching pack",
       "when": "Later",
       "items": [
-        "Guided lessons on the classic cases"
+        "Guided lessons on the classic cases, each with its theory and reference data"
       ]
     },
     {
-      "v": "1.0",
+      "v": "0.9.1",
+      "title": "What went wrong",
+      "when": "Later",
+      "items": [
+        "A mode that shows the common mistakes in a setup and what they do to the answer"
+      ]
+    },
+    {
+      "v": "1.0.0",
       "title": "Version 1",
       "when": "Goal",
       "items": [
