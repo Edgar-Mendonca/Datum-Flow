@@ -14,6 +14,8 @@ use std::f64::consts::PI;
 use std::sync::Arc;
 
 const SECONDARY: &str = "secondary sources";
+/// Checked against the original paper (the source names the table or figure).
+const ORIGINAL: &str = "original paper";
 
 #[allow(clippy::too_many_arguments)]
 fn row(tier: u8, case: &str, quantity: &str, reference: f64, result: f64, tolerance: f64, absolute: bool, source: &str, confirmed: &str, note: &str) -> Check {
@@ -203,7 +205,7 @@ pub fn kovasznay(grids: &[usize]) -> Vec<Check> {
 /// steadily the order cannot be established, and the band is three times the largest change
 /// between meshes (the safety factor recommended when the order is unknown).
 #[allow(clippy::too_many_arguments)]
-fn benchmark(case: &str, quantity: &str, reference: f64, ref_accuracy: f64, formal: f64, h: [f64; 3], phi: [f64; 3], source: &str, extra: &str) -> Check {
+fn benchmark(case: &str, quantity: &str, reference: f64, ref_accuracy: f64, formal: f64, h: [f64; 3], phi: [f64; 3], source: &str, confirmed: &str, extra: &str) -> Check {
     let g = gci(h, phi, formal);
     let band = if g.oscillating { 3.0 * (phi[1] - phi[0]).abs().max((phi[2] - phi[1]).abs()) / phi[0].abs().max(1e-300) } else { g.gci };
     let tol = (2.0 * band).max(ref_accuracy);
@@ -213,7 +215,7 @@ fn benchmark(case: &str, quantity: &str, reference: f64, ref_accuracy: f64, form
         format!("Grid Convergence Index of the fine mesh {:.2e} (apparent order {:.2}, extrapolated value {}).", band, g.order, flow_core::units::num(g.extrapolated, 7))
     };
     let which = if 2.0 * band >= ref_accuracy { "Tolerance: twice that band.".to_string() } else { format!("Tolerance: the reference's own accuracy ({:.1}%), which is wider than twice that band.", ref_accuracy * 100.0) };
-    let mut c = row(3, case, quantity, reference, phi[0], tol, false, source, SECONDARY, &format!("{how} {which} {extra}"));
+    let mut c = row(3, case, quantity, reference, phi[0], tol, false, source, confirmed, &format!("{how} {which} {extra}"));
     c.steps = (0..3).rev().map(|i| [h[i], phi[i]]).collect();
     c
 }
@@ -238,9 +240,9 @@ pub fn cylinder() -> Vec<Check> {
     let src = "Schäfer & Turek (1996), case 2D-1; reference values from the benchmark's results page";
     let (net, inflow) = runs[0].values().balance();
     vec![
-        benchmark(case, "Drag coefficient", 5.57953523384, 0.0, 3.0, h, get(&|r| r.values().drag_lift(6)[0] * 500.0), src, "Coefficient = 2 F / (ρ U² D) with the mean inlet speed."),
-        benchmark(case, "Lift coefficient", 0.010618948146, 0.0, 3.0, h, get(&|r| r.values().drag_lift(6)[1] * 500.0), src, ""),
-        benchmark(case, "Pressure difference, front to back of the cylinder (Pa)", 0.11752016697, 0.0, 2.0, h, get(&|r| { let l = r.locator(); sample(&r.mesh, &r.solved.state, &l, [0.15, 0.2]).pressure - sample(&r.mesh, &r.solved.state, &l, [0.25, 0.2]).pressure }), src, ""),
+        benchmark(case, "Drag coefficient", 5.57953523384, 0.0, 3.0, h, get(&|r| r.values().drag_lift(6)[0] * 500.0), src, SECONDARY, "Coefficient = 2 F / (ρ U² D) with the mean inlet speed."),
+        benchmark(case, "Lift coefficient", 0.010618948146, 0.0, 3.0, h, get(&|r| r.values().drag_lift(6)[1] * 500.0), src, SECONDARY, ""),
+        benchmark(case, "Pressure difference, front to back of the cylinder (Pa)", 0.11752016697, 0.0, 2.0, h, get(&|r| { let l = r.locator(); sample(&r.mesh, &r.solved.state, &l, [0.15, 0.2]).pressure - sample(&r.mesh, &r.solved.state, &l, [0.25, 0.2]).pressure }), src, SECONDARY, ""),
         row(3, case, "Net flow through all boundaries, over the flow in", 0.0, (net / inflow).abs(), 1e-10, true, "exact (mass is conserved)", "exact", "On the fine mesh."),
     ]
 }
@@ -252,34 +254,57 @@ pub fn cavity() -> Vec<Check> {
     let h = [runs[0].h(), runs[1].h(), runs[2].h()];
     let psi: Vec<Vec<f64>> = match runs.iter().map(|r| flow_post::stream_function(&r.mesh, &r.solved.state, &mut SparseLu::default())).collect() { Ok(p) => p, Err(e) => return failed(3, case, e) };
     let ext: Vec<(f64, [f64; 2])> = (0..3).map(|i| flow_post::fields::extremum(&runs[i].mesh, &psi[i], true)).collect();
-    let src = "Botella & Peyret (1998), spectral solution";
+    let src = |t: u32| format!("Botella & Peyret (1998), spectral solution N = 160, Table {t}");
     let at = |x: f64, y: f64, c: usize| -> [f64; 3] { [0, 1, 2].map(|i| { let s = sample(&runs[i].mesh, &runs[i].solved.state, &runs[i].locator(), [x, y]); [s.u, s.v][c] }) };
-    let lid = "Their lid moves in −x; values are mirrored here for a lid moving in +x.";
+    let lid = "Their lid moves in −x (u = −1 on the lid): x, u and the stream function are mirrored here for a lid moving in +x; v keeps its sign.";
     let mut rows = vec![
-        benchmark(case, "Stream function at the centre of the main eddy", -0.1189366, 0.0, 3.0, h, [ext[0].0, ext[1].0, ext[2].0], src, lid),
-        row(3, case, "Main eddy centre, x", 0.5308, ext[0].1[0], 0.002, true, src, SECONDARY, "Position on the fine mesh; tolerance 0.002 of the side (the reference gives four figures; the stream function is flat near its minimum)."),
-        row(3, case, "Main eddy centre, y", 0.5652, ext[0].1[1], 0.002, true, src, SECONDARY, ""),
+        benchmark(case, "Stream function at the centre of the main eddy", -0.1189366, 0.0, 3.0, h, [ext[0].0, ext[1].0, ext[2].0], &src(6), ORIGINAL, &format!("{lid} Their table gives +0.1189366 at x = 0.4692.")),
+        row(3, case, "Main eddy centre, x", 0.5308, ext[0].1[0], 0.002, true, &src(6), ORIGINAL, "Their x = 0.4692, mirrored. Position on the fine mesh; tolerance 0.002 of the side (the reference gives four figures; the stream function is flat near its minimum)."),
+        row(3, case, "Main eddy centre, y", 0.5652, ext[0].1[1], 0.002, true, &src(6), ORIGINAL, ""),
     ];
-    // Velocity on the centre lines, from their Tables 9 and 10.
+    // Velocity on the centre lines, from their Tables 9 and 10 (mirrored as above).
     for (y, u) in [(0.9531, 0.4723329), (0.5, -0.0620561), (0.1719, -0.3885691)] {
-        rows.push(benchmark(case, &format!("u on the vertical centre line at y = {y}"), u, 0.0, 3.0, h, at(0.5, y, 0), src, lid));
+        rows.push(benchmark(case, &format!("u on the vertical centre line at y = {y}"), u, 0.0, 3.0, h, at(0.5, y, 0), &src(9), ORIGINAL, lid));
     }
     for (x, v) in [(0.9063, -0.5264392), (0.5, 0.0257995), (0.1563, 0.3769189)] {
-        rows.push(benchmark(case, &format!("v on the horizontal centre line at x = {x}"), v, 0.0, 3.0, h, at(x, 0.5, 1), src, lid));
+        rows.push(benchmark(case, &format!("v on the horizontal centre line at x = {x}"), v, 0.0, 3.0, h, at(x, 0.5, 1), &src(10), ORIGINAL, &format!("{lid} Their x = {:.4}.", 1.0 - x)));
     }
     rows
 }
 
-/// de Vahl Davis (1983): natural convection of air in a square cavity.
-pub fn heated(ra: f64, nu: f64, factors: [f64; 3]) -> Vec<Check> {
+/// The largest value of a velocity component along a line, and where: sampled finely, then refined
+/// by a parabola through the best sample and its neighbours.
+fn line_max(r: &Run, a: [f64; 2], b: [f64; 2], comp: usize) -> (f64, f64) {
+    let loc = r.locator();
+    let n = 2000;
+    let val = |t: f64| { let s = sample(&r.mesh, &r.solved.state, &loc, [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); let v = [s.u, s.v][comp]; if v.is_finite() { v } else { f64::NEG_INFINITY } };
+    let (k, _) = (1..n).map(|k| (k, val(k as f64 / n as f64))).fold((0, f64::NEG_INFINITY), |m, x| if x.1 > m.1 { x } else { m });
+    let (t0, t1, t2) = ((k - 1) as f64 / n as f64, k as f64 / n as f64, (k + 1) as f64 / n as f64);
+    let (y0, y1, y2) = (val(t0), val(t1), val(t2));
+    let d = y0 - 2.0 * y1 + y2;
+    let off = if d < 0.0 { 0.5 * (y0 - y2) / d } else { 0.0 };
+    let t = t1 + off.clamp(-1.0, 1.0) / n as f64;
+    (val(t).max(y1), t)
+}
+
+/// de Vahl Davis (1983): natural convection of air in a square cavity, Pr 0.71. `nu`, `umax`
+/// (on the vertical mid-plane) and `wmax` (on the horizontal mid-plane) are his Table V; `err`
+/// his estimated error, Table VII. Velocities are in units of α/L, which the benchmark fluid makes 1 m/s.
+pub fn heated(ra: f64, nu: f64, umax: f64, wmax: f64, err: f64, factors: [f64; 3]) -> Vec<Check> {
     let case = format!("Heated cavity, Ra 1e{:.0}", ra.log10());
     let runs = match three(&examples::heated_cavity(ra), factors) { Ok(r) => r, Err(e) => return failed(3, &case, e) };
     let h = [runs[0].h(), runs[1].h(), runs[2].h()];
     let v = runs[0].values();
     let (hot, cold) = (v.nusselt(2), v.nusselt(3));
+    let src = "de Vahl Davis (1983), bench mark solution, Table V";
+    let acc = format!("His estimated error at this Rayleigh number is {}% (his Table VII).", err * 100.0);
+    let u = [0, 1, 2].map(|i| line_max(&runs[i], [0.5, 0.0], [0.5, 1.0], 0).0);
+    let w = [0, 1, 2].map(|i| line_max(&runs[i], [0.0, 0.5], [1.0, 0.5], 1).0);
     vec![
-        benchmark(&case, "Average Nusselt number", nu, 0.01, 3.0, h, [hot, runs[1].values().nusselt(2), runs[2].values().nusselt(2)], "de Vahl Davis (1983), benchmark solution",
-            "The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow. He states his solution is accurate to better than 1% at the highest Rayleigh number."),
+        benchmark(&case, "Average Nusselt number", nu, err, 3.0, h, [hot, runs[1].values().nusselt(2), runs[2].values().nusselt(2)], src, ORIGINAL,
+            &format!("The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow (his own wall value differs from his average by less than his error). {acc}")),
+        benchmark(&case, "Largest horizontal velocity on the vertical mid-plane (α/L)", umax, err, 3.0, h, u, src, ORIGINAL, &acc),
+        benchmark(&case, "Largest vertical velocity on the horizontal mid-plane (α/L)", wmax, err, 3.0, h, w, src, ORIGINAL, &acc),
         row(3, &case, "Heat out through the cool wall, over heat in through the warm wall", 1.0, cold / hot, 1e-4, false, "exact (energy is conserved)", "exact", "On the fine mesh."),
     ]
 }
@@ -293,30 +318,39 @@ pub fn reattachment(r: &Run) -> f64 {
     let loc = r.locator();
     let u = |x: f64| sample(&r.mesh, &r.solved.state, &loc, [x, s * 0.01]).u;
     let n = 3000;
+    // The last place the flow turns from backwards to forwards: a small corner eddy at the foot of
+    // the step turns too, and must not be taken for the main reattachment.
     let mut last = 0.0;
-    for i in 1..n {
+    let mut prev = u(1e-6);
+    for i in 1..=n {
         let (a, b) = (30.0 * s * (i - 1) as f64 / n as f64 + 1e-6, 30.0 * s * i as f64 / n as f64);
-        if u(a) < 0.0 && u(b) >= 0.0 {
-            last = a + (b - a) * (-u(a)) / (u(b) - u(a));
-            break;
+        let ub = u(b);
+        if prev < 0.0 && ub >= 0.0 {
+            last = a + (b - a) * (-prev) / (ub - prev);
         }
+        prev = ub;
     }
     last / s
 }
 
-/// Backward-facing step: reattachment lengths at the Reynolds numbers of Armaly et al. (1983).
-/// Returned as text: the measured values could not be read from the paper, so there is no verdict.
-pub fn step_lengths() -> String {
-    let mut out = vec![];
-    for re in [100.0, 200.0, 389.0] {
-        let mut m = examples::step(re);
-        m.solver.continuation = Continuation::Auto;
+/// Backward-facing step against the measurements of Armaly et al. (1983): the reattachment length
+/// of the primary eddy at the Reynolds numbers below 400, where they found the flow two-dimensional.
+/// The measured lengths are read off their Figure 14 (calibrated against its tick marks; ±0.05 step
+/// heights); the paper states no uncertainty for them.
+pub fn step() -> Vec<Check> {
+    let mut rows = vec![];
+    for (re, measured) in [(100.0, 3.05), (150.0, 4.05), (300.0, 6.62), (389.0, 8.61)] {
+        let case = format!("Backward-facing step, Re {re:.0}");
+        let mut m = refined(&examples::step(re), 1.5);
+        m.solver.tol = 1e-10;
         match solve_model(&m) {
-            Ok(r) => out.push(format!("{:.2} step heights at Re {re:.0}", reattachment(&r))),
-            Err(e) => out.push(format!("no answer at Re {re:.0} ({e})")),
+            Ok(r) => rows.push(row(4, &case, "Reattachment length, in step heights", measured, reattachment(&r), 0.10, false,
+                "Armaly, Durst, Pereira & Schönung (1983), measured, Figure 14", "original paper (read off the figure)",
+                "Validation against an experiment. The paper gives no uncertainty for these lengths, so the 10% band is a judgement, set after the first comparison: it covers reading the figure (±0.05 step heights), and the small departures from two-dimensional flow the authors report as Re nears 400. At Re 389 their own 2D computation (Figure 14) gives about 8.05, beside 8.00 here.")),
+            Err(e) => rows.extend(failed(4, &case, e)),
         }
     }
-    out.join(", ")
+    rows
 }
 
 // ------------------------------------------------------------------ the suite
@@ -337,10 +371,11 @@ pub fn quick() -> Vec<Check> {
 pub fn full() -> Vec<Check> {
     let mut c = quick();
     c.extend(cavity());
-    c.extend(heated(1e3, 1.118, [0.6, 0.9, 1.35]));
-    c.extend(heated(1e4, 2.243, [0.6, 0.9, 1.35]));
-    c.extend(heated(1e5, 4.519, [0.6, 0.9, 1.35]));
-    c.extend(heated(1e6, 8.800, [0.6, 0.9, 1.35]));
+    c.extend(heated(1e3, 1.118, 3.649, 3.697, 0.001, [0.6, 0.9, 1.35]));
+    c.extend(heated(1e4, 2.243, 16.178, 19.617, 0.002, [0.6, 0.9, 1.35]));
+    c.extend(heated(1e5, 4.519, 34.73, 68.59, 0.003, [0.6, 0.9, 1.35]));
+    c.extend(heated(1e6, 8.800, 64.63, 219.36, 0.01, [0.6, 0.9, 1.35]));
+    c.extend(step());
     c.sort_by_key(|x| x.tier);
     c
 }

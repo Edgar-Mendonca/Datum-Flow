@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.3 — 2026-11-18
+
+The verification report now checks its reference values against the original papers, and the backward-facing step is compared with the experiment.
+
+- **Reference values from the papers.** The lid-driven cavity's values were checked against Botella & Peyret (1998), Tables 6, 9 and 10, and the heated cavity's against de Vahl Davis (1983), Table V. Every row says which table its number comes from.
+- **Tighter bands for the heated cavity.** de Vahl Davis gives the error of his own solution: 0.1%, 0.2%, 0.3% and 1% at Rayleigh numbers 10³ to 10⁶ (his Table VII). Datum Flow's Nusselt numbers are compared within those, instead of a flat 1%.
+- **New checks.** The largest horizontal and vertical velocities on the cavity's mid-planes at each Rayleigh number, also from de Vahl Davis's Table V.
+- **Validation against an experiment.** The backward-facing step is compared with the reattachment lengths measured by Armaly et al. (1983) at Reynolds numbers 100, 150, 300 and 389 (read off their Figure 14). The paper gives no uncertainty for these lengths, so the report says plainly that the 10% band used is a judgement.
+- **Fixed:** on fine meshes, the step's reattachment length could be read at a small corner eddy at the foot of the step instead of where the main eddy ends.
+- 48 of 48 checks pass. Still from secondary sources: the cylinder benchmark (the pages of the paper with its definitions and results have not been checked) and Kovasznay's exact solution.
+
 ## 0.1.2 — 2026-11-18
 
 The Datum sidebar: every view one click away, and a step-by-step Setup for new models.

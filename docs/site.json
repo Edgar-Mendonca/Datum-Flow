@@ -42,21 +42,13 @@
   ],
   "roadmap": [
     {
-      "v": "0.1.3",
-      "title": "Reference values from the papers",
-      "when": "Next",
-      "items": [
-        "Every benchmark value checked against its original paper, and marked so in the verification report",
-        "The backward-facing step compared with the measurements of Armaly et al. (1983), with a verdict"
-      ]
-    },
-    {
       "v": "0.1.4",
       "title": "Results kept with the model",
       "when": "Next",
       "items": [
         "Results saved in the .dflow file, so a model opens solved",
-        "A manual range for the colour legend"
+        "A manual range for the colour legend",
+        "The cylinder benchmark's reference values checked against its original paper"
       ]
     },
     {

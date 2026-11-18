@@ -62,10 +62,11 @@ pub fn shipped() -> Report {
 }
 
 /// What no row of the report covers, said plainly. `step` is the computed reattachment lengths.
-pub fn not_verified(step: &str) -> Vec<String> {
+pub fn not_verified() -> Vec<String> {
     vec![
-        format!("Validation against experiment: for the backward-facing step of Armaly et al. (1983) Datum Flow computes reattachment at {step}. The measured lengths are given in a figure of the paper, which could not be opened while this record was made, so no verdict is given. Values quoted for it elsewhere are about 3, 5 and 8 step heights."),
-        "Reference values were keyed in from secondary sources (the benchmark authors' own code and results pages as quoted by others, and independent transcriptions that agree with each other), not read from the original papers. They are marked \"secondary sources\" until checked against the papers.".into(),
+        "The cylinder benchmark's reference values (Schäfer & Turek 1996) are still from secondary sources: the benchmark authors' own code and results pages. The pages of the paper that define the case and give its results (549–566) have not been checked.".into(),
+        "Kovasznay's exact solution (1948) is checked for consistency (it satisfies the equations) and against later papers that quote it, not against the 1948 paper.".into(),
+        "The backward-facing step is compared with measurements below Re 400 only. Above that the authors found the experimental flow three-dimensional, which a 2D solver cannot reproduce; the paper states no uncertainty for its reattachment lengths.".into(),
         "Flows that are turbulent, time-dependent, compressible or three-dimensional: this version does not solve them.".into(),
         "Symmetry and slip edges, heat-flux boundaries, moving walls other than a lid, and the light-oil and US-unit paths have unit tests but no benchmark row.".into(),
         "The Reynolds and Rayleigh limits of the turbulence warning are rules of thumb, not verified transition points.".into(),
@@ -117,7 +118,8 @@ pub fn markdown(r: &Report) -> String {
     o.push_str("- **Order of accuracy:** the error must fall at the method's formal rate as the mesh is halved (3 for velocity and temperature, 2 for pressure, within ±0.1), by the method of manufactured solutions (Salari & Knupp 2000) and on Kovasznay's exact solution (1948).\n");
     o.push_str("- **Benchmarks** are published high-accuracy results. Each quantity is computed on three meshes (refinement ratio 1.5); the error of the finest must be within twice its Grid Convergence Index (Celik et al. 2008: safety factor 1.25 on the observed order), or within the reference's own stated accuracy where that is wider. Where the three values do not converge steadily the order cannot be established, and the band is three times the largest change between meshes instead.\n");
     o.push_str("- **Error** is relative to the reference, except where marked *abs* (orders of accuracy and values whose reference is zero).\n");
-    o.push_str("- **Reference** says how each published number was confirmed. \"Secondary sources\" means it was not read from the original paper.\n\n");
+    o.push_str("- **Validation** compares with laboratory measurements, labelled as such: the backward-facing step of Armaly et al. (1983), within a stated band, since the paper gives no uncertainty.\n");
+    o.push_str("- **Reference** says how each published number was confirmed: \"original paper\" (the source names its table or figure) or \"secondary sources\" (not yet read from the original paper).\n\n");
     for (i, name) in TIERS.iter().enumerate() {
         let rows: Vec<&Check> = r.checks.iter().filter(|c| c.tier as usize == i + 1).collect();
         if rows.is_empty() {

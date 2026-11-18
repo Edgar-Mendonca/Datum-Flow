@@ -41,8 +41,7 @@ fn main() {
     }
     let t = std::time::Instant::now();
     let mut checks = flow_verify::cases::full();
-    let step = flow_verify::cases::step_lengths();
-    let mut notes = not_verified(&step);
+    let mut notes = not_verified();
     // The newest record of an earlier version.
     let prev = std::fs::read_dir(dir).ok().into_iter().flatten().flatten()
         .filter_map(|f| f.file_name().to_str().and_then(|n| n.strip_suffix(".json")).map(str::to_string))

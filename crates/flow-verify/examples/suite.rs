@@ -7,5 +7,4 @@ fn main() {
         println!("{} T{} {} | {} | ref {:.9} got {:.9} err {:.2e} tol {:.2e} | {}", if c.pass { "PASS" } else { "FAIL" }, c.tier, c.case, c.quantity, c.reference, c.result, c.error, c.tolerance, c.steps.iter().map(|s| format!("{:.3e}", s[1])).collect::<Vec<_>>().join(" "));
     }
     println!("{:.1}s", t.elapsed().as_secs_f64());
-    if full { println!("step: {}", flow_verify::cases::step_lengths()); }
 }

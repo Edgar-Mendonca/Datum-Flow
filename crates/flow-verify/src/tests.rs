@@ -54,9 +54,9 @@ fn the_full_suite_passes() {
 fn the_shipped_record_is_current_and_has_no_failures() {
     let r = shipped();
     assert_eq!(r.version, env!("CARGO_PKG_VERSION"), "run `cargo run --release -p flow-verify --bin report` for this version");
-    assert!(r.failed() == 0 && r.checks.len() >= 30, "{} checks, {} failed", r.checks.len(), r.failed());
+    assert!(r.failed() == 0 && r.checks.len() >= 45, "{} checks, {} failed", r.checks.len(), r.failed());
     // The never-cut list: the cylinder and cavity benchmarks, mass conservation, every tier 1 to 3.
-    for need in ["Cylinder in a channel, Re 20", "Lid-driven cavity, Re 1000", "Heated cavity, Ra 1e6", "Plane Poiseuille flow", "Manufactured solution: flow, heat and buoyancy"] {
+    for need in ["Cylinder in a channel, Re 20", "Lid-driven cavity, Re 1000", "Heated cavity, Ra 1e6", "Plane Poiseuille flow", "Manufactured solution: flow, heat and buoyancy", "Backward-facing step, Re 389"] {
         assert!(r.checks.iter().any(|c| c.case == need), "{need} is missing from the record");
     }
     assert!(r.checks.iter().any(|c| c.quantity.starts_with("Net flow through all boundaries")));

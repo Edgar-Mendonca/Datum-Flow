@@ -1,5 +1,5 @@
 {
-  "version": "0.1.2",
+  "version": "0.1.3",
   "date": "2026-11-18",
   "checks": [
     {
@@ -386,9 +386,9 @@
       "tolerance": 0.0005461258953528697,
       "absolute": false,
       "pass": true,
-      "source": "Botella & Peyret (1998), spectral solution",
-      "confirmed": "secondary sources",
-      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 2.73e-4. Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "source": "Botella & Peyret (1998), spectral solution N = 160, Table 6",
+      "confirmed": "original paper",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 2.73e-4. Tolerance: twice that band. Their lid moves in −x (u = −1 on the lid): x, u and the stream function are mirrored here for a lid moving in +x; v keeps its sign. Their table gives +0.1189366 at x = 0.4692.",
       "steps": [
         [
           0.01768043231307192,
@@ -414,9 +414,9 @@
       "tolerance": 0.002,
       "absolute": true,
       "pass": true,
-      "source": "Botella & Peyret (1998), spectral solution",
-      "confirmed": "secondary sources",
-      "note": "Position on the fine mesh; tolerance 0.002 of the side (the reference gives four figures; the stream function is flat near its minimum).",
+      "source": "Botella & Peyret (1998), spectral solution N = 160, Table 6",
+      "confirmed": "original paper",
+      "note": "Their x = 0.4692, mirrored. Position on the fine mesh; tolerance 0.002 of the side (the reference gives four figures; the stream function is flat near its minimum).",
       "steps": []
     },
     {
@@ -429,8 +429,8 @@
       "tolerance": 0.002,
       "absolute": true,
       "pass": true,
-      "source": "Botella & Peyret (1998), spectral solution",
-      "confirmed": "secondary sources",
+      "source": "Botella & Peyret (1998), spectral solution N = 160, Table 6",
+      "confirmed": "original paper",
       "note": "",
       "steps": []
     },
@@ -444,9 +444,9 @@
       "tolerance": 0.0006728758089120974,
       "absolute": false,
       "pass": true,
-      "source": "Botella & Peyret (1998), spectral solution",
-      "confirmed": "secondary sources",
-      "note": "Grid Convergence Index of the fine mesh 3.36e-4 (apparent order 7.04, extrapolated value 0.4722025). Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "source": "Botella & Peyret (1998), spectral solution N = 160, Table 9",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 3.36e-4 (apparent order 7.04, extrapolated value 0.4722025). Tolerance: twice that band. Their lid moves in −x (u = −1 on the lid): x, u and the stream function are mirrored here for a lid moving in +x; v keeps its sign.",
       "steps": [
         [
           0.01768043231307192,
@@ -472,9 +472,9 @@
       "tolerance": 0.000258586993776215,
       "absolute": false,
       "pass": true,
-      "source": "Botella & Peyret (1998), spectral solution",
-      "confirmed": "secondary sources",
-      "note": "Grid Convergence Index of the fine mesh 1.29e-4 (apparent order 6.32, extrapolated value -0.06205287). Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "source": "Botella & Peyret (1998), spectral solution N = 160, Table 9",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 1.29e-4 (apparent order 6.32, extrapolated value -0.06205287). Tolerance: twice that band. Their lid moves in −x (u = −1 on the lid): x, u and the stream function are mirrored here for a lid moving in +x; v keeps its sign.",
       "steps": [
         [
           0.01768043231307192,
@@ -500,9 +500,9 @@
       "tolerance": 0.0007528000859902138,
       "absolute": false,
       "pass": true,
-      "source": "Botella & Peyret (1998), spectral solution",
-      "confirmed": "secondary sources",
-      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 3.76e-4. Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "source": "Botella & Peyret (1998), spectral solution N = 160, Table 9",
+      "confirmed": "original paper",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 3.76e-4. Tolerance: twice that band. Their lid moves in −x (u = −1 on the lid): x, u and the stream function are mirrored here for a lid moving in +x; v keeps its sign.",
       "steps": [
         [
           0.01768043231307192,
@@ -528,9 +528,9 @@
       "tolerance": 0.00289962946047288,
       "absolute": false,
       "pass": true,
-      "source": "Botella & Peyret (1998), spectral solution",
-      "confirmed": "secondary sources",
-      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 1.45e-3. Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "source": "Botella & Peyret (1998), spectral solution N = 160, Table 10",
+      "confirmed": "original paper",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 1.45e-3. Tolerance: twice that band. Their lid moves in −x (u = −1 on the lid): x, u and the stream function are mirrored here for a lid moving in +x; v keeps its sign. Their x = 0.0937.",
       "steps": [
         [
           0.01768043231307192,
@@ -556,9 +556,9 @@
       "tolerance": 0.0023356094786757295,
       "absolute": false,
       "pass": true,
-      "source": "Botella & Peyret (1998), spectral solution",
-      "confirmed": "secondary sources",
-      "note": "Grid Convergence Index of the fine mesh 1.17e-3 (apparent order 8.24, extrapolated value 0.02582031). Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "source": "Botella & Peyret (1998), spectral solution N = 160, Table 10",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 1.17e-3 (apparent order 8.24, extrapolated value 0.02582031). Tolerance: twice that band. Their lid moves in −x (u = −1 on the lid): x, u and the stream function are mirrored here for a lid moving in +x; v keeps its sign. Their x = 0.5000.",
       "steps": [
         [
           0.01768043231307192,
@@ -584,9 +584,9 @@
       "tolerance": 0.0022943085291743984,
       "absolute": false,
       "pass": true,
-      "source": "Botella & Peyret (1998), spectral solution",
-      "confirmed": "secondary sources",
-      "note": "Grid Convergence Index of the fine mesh 1.15e-3 (apparent order 0.60, extrapolated value 0.3772413). Tolerance: twice that band. Their lid moves in −x; values are mirrored here for a lid moving in +x.",
+      "source": "Botella & Peyret (1998), spectral solution N = 160, Table 10",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 1.15e-3 (apparent order 0.60, extrapolated value 0.3772413). Tolerance: twice that band. Their lid moves in −x (u = −1 on the lid): x, u and the stream function are mirrored here for a lid moving in +x; v keeps its sign. Their x = 0.8437.",
       "steps": [
         [
           0.01768043231307192,
@@ -609,12 +609,12 @@
       "reference": 1.118,
       "result": 1.1177895530368365,
       "error": 0.0001882352085542354,
-      "tolerance": 0.01,
+      "tolerance": 0.001,
       "absolute": false,
       "pass": true,
-      "source": "de Vahl Davis (1983), benchmark solution",
-      "confirmed": "secondary sources",
-      "note": "Grid Convergence Index of the fine mesh 3.47e-7 (apparent order 4.99, extrapolated value 1.11779). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow. He states his solution is accurate to better than 1% at the highest Rayleigh number.",
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 3.47e-7 (apparent order 4.99, extrapolated value 1.11779). Tolerance: the reference's own accuracy (0.1%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow (his own wall value differs from his average by less than his error). His estimated error at this Rayleigh number is 0.1% (his Table VII).",
       "steps": [
         [
           0.025880347068133497,
@@ -627,6 +627,62 @@
         [
           0.013253464162752575,
           1.1177895530368365
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e3",
+      "quantity": "Largest horizontal velocity on the vertical mid-plane (α/L)",
+      "reference": 3.649,
+      "result": 3.6495149693923867,
+      "error": 0.000141126169467446,
+      "tolerance": 0.001,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 1.67e-4 (apparent order 1.52, extrapolated value 3.650002). Tolerance: the reference's own accuracy (0.1%), which is wider than twice that band. His estimated error at this Rayleigh number is 0.1% (his Table VII).",
+      "steps": [
+        [
+          0.025880347068133497,
+          3.6486573070396475
+        ],
+        [
+          0.018685877318798397,
+          3.6491816782504705
+        ],
+        [
+          0.013253464162752575,
+          3.6495149693923867
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e3",
+      "quantity": "Largest vertical velocity on the horizontal mid-plane (α/L)",
+      "reference": 3.697,
+      "result": 3.6975062955670603,
+      "error": 0.0001369476784041865,
+      "tolerance": 0.001,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 4.65e-4. Tolerance: the reference's own accuracy (0.1%), which is wider than twice that band. His estimated error at this Rayleigh number is 0.1% (his Table VII).",
+      "steps": [
+        [
+          0.025880347068133497,
+          3.6969673186910494
+        ],
+        [
+          0.018685877318798397,
+          3.6975408930438394
+        ],
+        [
+          0.013253464162752575,
+          3.6975062955670603
         ]
       ]
     },
@@ -652,12 +708,12 @@
       "reference": 2.243,
       "result": 2.2448112193237795,
       "error": 0.0008074985839409672,
-      "tolerance": 0.01,
+      "tolerance": 0.002,
       "absolute": false,
       "pass": true,
-      "source": "de Vahl Davis (1983), benchmark solution",
-      "confirmed": "secondary sources",
-      "note": "Grid Convergence Index of the fine mesh 3.81e-6 (apparent order 4.04, extrapolated value 2.244818). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow. He states his solution is accurate to better than 1% at the highest Rayleigh number.",
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 3.81e-6 (apparent order 4.04, extrapolated value 2.244818). Tolerance: the reference's own accuracy (0.2%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow (his own wall value differs from his average by less than his error). His estimated error at this Rayleigh number is 0.2% (his Table VII).",
       "steps": [
         [
           0.025880347068133497,
@@ -670,6 +726,62 @@
         [
           0.013253464162752575,
           2.2448112193237795
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e4",
+      "quantity": "Largest horizontal velocity on the vertical mid-plane (α/L)",
+      "reference": 16.178,
+      "result": 16.183662183987575,
+      "error": 0.00034999282900077664,
+      "tolerance": 0.002,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 3.38e-5 (apparent order 6.63, extrapolated value 16.18322). Tolerance: the reference's own accuracy (0.2%), which is wider than twice that band. His estimated error at this Rayleigh number is 0.2% (his Table VII).",
+      "steps": [
+        [
+          0.025880347068133497,
+          16.191184941802938
+        ],
+        [
+          0.018685877318798397,
+          16.18445023025278
+        ],
+        [
+          0.013253464162752575,
+          16.183662183987575
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e4",
+      "quantity": "Largest vertical velocity on the horizontal mid-plane (α/L)",
+      "reference": 19.617,
+      "result": 19.62809339125993,
+      "error": 0.000565498866285876,
+      "tolerance": 0.002,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 1.75e-5 (apparent order 6.27, extrapolated value 19.62837). Tolerance: the reference's own accuracy (0.2%), which is wider than twice that band. His estimated error at this Rayleigh number is 0.2% (his Table VII).",
+      "steps": [
+        [
+          0.025880347068133497,
+          19.62384524780694
+        ],
+        [
+          0.018685877318798397,
+          19.627598362423083
+        ],
+        [
+          0.013253464162752575,
+          19.62809339125993
         ]
       ]
     },
@@ -695,12 +807,12 @@
       "reference": 4.519,
       "result": 4.521582900049854,
       "error": 0.0005715645164535561,
-      "tolerance": 0.01,
+      "tolerance": 0.003,
       "absolute": false,
       "pass": true,
-      "source": "de Vahl Davis (1983), benchmark solution",
-      "confirmed": "secondary sources",
-      "note": "Grid Convergence Index of the fine mesh 9.62e-6 (apparent order 6.12, extrapolated value 4.521618). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow. He states his solution is accurate to better than 1% at the highest Rayleigh number.",
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 9.62e-6 (apparent order 6.12, extrapolated value 4.521618). Tolerance: the reference's own accuracy (0.3%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow (his own wall value differs from his average by less than his error). His estimated error at this Rayleigh number is 0.3% (his Table VII).",
       "steps": [
         [
           0.025880347068133497,
@@ -713,6 +825,62 @@
         [
           0.013253464162752575,
           4.521582900049854
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e5",
+      "quantity": "Largest horizontal velocity on the vertical mid-plane (α/L)",
+      "reference": 34.73,
+      "result": 34.74351183420775,
+      "error": 0.0003890536771596517,
+      "tolerance": 0.011935323320078963,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 5.97e-3 (apparent order 0.30, extrapolated value 34.90938). Tolerance: twice that band. His estimated error at this Rayleigh number is 0.3% (his Table VII).",
+      "steps": [
+        [
+          0.025880347068133497,
+          34.67985711084252
+        ],
+        [
+          0.018685877318798397,
+          34.71243006111568
+        ],
+        [
+          0.013253464162752575,
+          34.74351183420775
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e5",
+      "quantity": "Largest vertical velocity on the horizontal mid-plane (α/L)",
+      "reference": 68.59,
+      "result": 68.64006104057195,
+      "error": 0.0007298591714819514,
+      "tolerance": 0.022214795725791832,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 1.11e-2. Tolerance: twice that band. His estimated error at this Rayleigh number is 0.3% (his Table VII).",
+      "steps": [
+        [
+          0.025880347068133497,
+          68.53756024415486
+        ],
+        [
+          0.018685877318798397,
+          68.38592355146825
+        ],
+        [
+          0.013253464162752575,
+          68.64006104057195
         ]
       ]
     },
@@ -741,9 +909,9 @@
       "tolerance": 0.01,
       "absolute": false,
       "pass": true,
-      "source": "de Vahl Davis (1983), benchmark solution",
-      "confirmed": "secondary sources",
-      "note": "Grid Convergence Index of the fine mesh 2.05e-5 (apparent order 2.31, extrapolated value 8.825263). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow. He states his solution is accurate to better than 1% at the highest Rayleigh number.",
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 2.05e-5 (apparent order 2.31, extrapolated value 8.825263). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. The reference is his average over the cavity; here it is the heat through the warm wall, which is the same number for a steady flow (his own wall value differs from his average by less than his error). His estimated error at this Rayleigh number is 1% (his Table VII).",
       "steps": [
         [
           0.016000512024577297,
@@ -756,6 +924,62 @@
         [
           0.008791230023525283,
           8.825118053457388
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e6",
+      "quantity": "Largest horizontal velocity on the vertical mid-plane (α/L)",
+      "reference": 64.63,
+      "result": 64.83113985141974,
+      "error": 0.0031121747086452047,
+      "tolerance": 0.01,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "The three meshes do not converge steadily, so the band is 3 × the largest change between meshes: 3.93e-3. Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. His estimated error at this Rayleigh number is 1% (his Table VII).",
+      "steps": [
+        [
+          0.016000512024577297,
+          64.88612944824344
+        ],
+        [
+          0.011803159420437524,
+          64.80112397528187
+        ],
+        [
+          0.008791230023525283,
+          64.83113985141974
+        ]
+      ]
+    },
+    {
+      "tier": 3,
+      "case": "Heated cavity, Ra 1e6",
+      "quantity": "Largest vertical velocity on the horizontal mid-plane (α/L)",
+      "reference": 219.36,
+      "result": 220.53541560450512,
+      "error": 0.005358386234979507,
+      "tolerance": 0.01,
+      "absolute": false,
+      "pass": true,
+      "source": "de Vahl Davis (1983), bench mark solution, Table V",
+      "confirmed": "original paper",
+      "note": "Grid Convergence Index of the fine mesh 4.11e-5 (apparent order 11.77, extrapolated value 220.5282). Tolerance: the reference's own accuracy (1.0%), which is wider than twice that band. His estimated error at this Rayleigh number is 1% (his Table VII).",
+      "steps": [
+        [
+          0.016000512024577297,
+          220.91666408123535
+        ],
+        [
+          0.011803159420437524,
+          220.5457243246317
+        ],
+        [
+          0.008791230023525283,
+          220.53541560450512
         ]
       ]
     },
@@ -775,8 +999,68 @@
       "steps": []
     },
     {
+      "tier": 4,
+      "case": "Backward-facing step, Re 100",
+      "quantity": "Reattachment length, in step heights",
+      "reference": 3.05,
+      "result": 2.8586331630816137,
+      "error": 0.06274322521914298,
+      "tolerance": 0.1,
+      "absolute": false,
+      "pass": true,
+      "source": "Armaly, Durst, Pereira & Schönung (1983), measured, Figure 14",
+      "confirmed": "original paper (read off the figure)",
+      "note": "Validation against an experiment. The paper gives no uncertainty for these lengths, so the 10% band is a judgement, set after the first comparison: it covers reading the figure (±0.05 step heights), and the small departures from two-dimensional flow the authors report as Re nears 400. At Re 389 their own 2D computation (Figure 14) gives about 8.05, beside 8.00 here.",
+      "steps": []
+    },
+    {
+      "tier": 4,
+      "case": "Backward-facing step, Re 150",
+      "quantity": "Reattachment length, in step heights",
+      "reference": 4.05,
+      "result": 3.912538060563922,
+      "error": 0.03394121961384639,
+      "tolerance": 0.1,
+      "absolute": false,
+      "pass": true,
+      "source": "Armaly, Durst, Pereira & Schönung (1983), measured, Figure 14",
+      "confirmed": "original paper (read off the figure)",
+      "note": "Validation against an experiment. The paper gives no uncertainty for these lengths, so the 10% band is a judgement, set after the first comparison: it covers reading the figure (±0.05 step heights), and the small departures from two-dimensional flow the authors report as Re nears 400. At Re 389 their own 2D computation (Figure 14) gives about 8.05, beside 8.00 here.",
+      "steps": []
+    },
+    {
+      "tier": 4,
+      "case": "Backward-facing step, Re 300",
+      "quantity": "Reattachment length, in step heights",
+      "reference": 6.62,
+      "result": 6.642319163528509,
+      "error": 0.0033714748532490168,
+      "tolerance": 0.1,
+      "absolute": false,
+      "pass": true,
+      "source": "Armaly, Durst, Pereira & Schönung (1983), measured, Figure 14",
+      "confirmed": "original paper (read off the figure)",
+      "note": "Validation against an experiment. The paper gives no uncertainty for these lengths, so the 10% band is a judgement, set after the first comparison: it covers reading the figure (±0.05 step heights), and the small departures from two-dimensional flow the authors report as Re nears 400. At Re 389 their own 2D computation (Figure 14) gives about 8.05, beside 8.00 here.",
+      "steps": []
+    },
+    {
+      "tier": 4,
+      "case": "Backward-facing step, Re 389",
+      "quantity": "Reattachment length, in step heights",
+      "reference": 8.61,
+      "result": 8.004618710191961,
+      "error": 0.07031141577329134,
+      "tolerance": 0.1,
+      "absolute": false,
+      "pass": true,
+      "source": "Armaly, Durst, Pereira & Schönung (1983), measured, Figure 14",
+      "confirmed": "original paper (read off the figure)",
+      "note": "Validation against an experiment. The paper gives no uncertainty for these lengths, so the 10% band is a judgement, set after the first comparison: it covers reading the figure (±0.05 step heights), and the small departures from two-dimensional flow the authors report as Re nears 400. At Re 389 their own 2D computation (Figure 14) gives about 8.05, beside 8.00 here.",
+      "steps": []
+    },
+    {
       "tier": 5,
-      "case": "Compared with 0.1.1",
+      "case": "Compared with 0.1.2",
       "quantity": "Values unchanged since the last release, of those compared",
       "reference": 35.0,
       "result": 35.0,
@@ -784,19 +1068,20 @@
       "tolerance": 35.0,
       "absolute": true,
       "pass": true,
-      "source": "Datum Flow 0.1.1",
+      "source": "Datum Flow 0.1.2",
       "confirmed": "exact",
       "note": "Each value that changed is listed below with its old and new value.",
       "steps": []
     }
   ],
   "not_verified": [
-    "Validation against experiment: for the backward-facing step of Armaly et al. (1983) Datum Flow computes reattachment at 2.85 step heights at Re 100, 4.87 step heights at Re 200, 8.00 step heights at Re 389. The measured lengths are given in a figure of the paper, which could not be opened while this record was made, so no verdict is given. Values quoted for it elsewhere are about 3, 5 and 8 step heights.",
-    "Reference values were keyed in from secondary sources (the benchmark authors' own code and results pages as quoted by others, and independent transcriptions that agree with each other), not read from the original papers. They are marked \"secondary sources\" until checked against the papers.",
+    "The cylinder benchmark's reference values (Schäfer & Turek 1996) are still from secondary sources: the benchmark authors' own code and results pages. The pages of the paper that define the case and give its results (549–566) have not been checked.",
+    "Kovasznay's exact solution (1948) is checked for consistency (it satisfies the equations) and against later papers that quote it, not against the 1948 paper.",
+    "The backward-facing step is compared with measurements below Re 400 only. Above that the authors found the experimental flow three-dimensional, which a 2D solver cannot reproduce; the paper states no uncertainty for its reattachment lengths.",
     "Flows that are turbulent, time-dependent, compressible or three-dimensional: this version does not solve them.",
     "Symmetry and slip edges, heat-flux boundaries, moving walls other than a lid, and the light-oil and US-unit paths have unit tests but no benchmark row.",
     "The Reynolds and Rayleigh limits of the turbulence warning are rules of thumb, not verified transition points."
   ],
-  "seconds": 446.0,
+  "seconds": 473.0,
   "machine": "4 threads, linux x86_64"
 }

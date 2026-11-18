@@ -7,7 +7,7 @@
 | --- | --- |
 | **Product** | Datum Flow: fluid-flow simulation (CFD) on the desktop. Draw or load a geometry, choose a fluid, set inlets, outlets and walls, mesh, solve, and see velocity, pressure and temperature, with pressure drop, flow rate, drag and lift, heat transfer. Every release proves its answers in a built-in verification report |
 | **Tagline** | "Fluid flow simulation: draw it, set the flow, see and check the results." |
-| **Current version** | 0.1.2 (2026-11-18) |
+| **Current version** | 0.1.3 (2026-11-18) |
 | **Repo** | `Edgar-Mendonca/Datum-Flow` · branch `claude/magical-galileo-k8g6qh` (the first branch pushed) |
 | **Stack** | Rust engine (`crates/`, own solver), Tauri 2, SolidJS + strict TypeScript; CPU only (threads), no GPU in 0.x |
 | **Identifier** | `com.edgarmendonca.datumflow` · files `.dflow` (JSON, `format` 1) · installer `DatumFlow-x.y.z-setup.exe` + `SHA256SUMS.txt` · publisher "Datum" |
@@ -142,6 +142,12 @@ Bump the version in the root `Cargo.toml`, add the CHANGELOG section, regenerate
 | 0.1.2 | **Ten views:** Geometry, Physics, Mesh, Solve, Results show the 2D view (each brings its ribbon tab, and a ribbon tab lights its view); Values, Plots, Checks, Verify are pages laid over the 2D view, which stays mounted | Pages need the width; the view keeps its zoom and layers underneath |
 | 0.1.2 | **Setup is a step-by-step panel on the right, in the properties' place** (as in Datum Plan), opened by itself for a new blank model; picking anything shows its properties with "Back to Setup" | Datum Plan's pattern; the properties are still needed to type exact sizes while setting up |
 | 0.1.2 | **The roadmap is written one three-number release per line**, from 0.1.3 to 1.0.0 (site.json, this file, File › Roadmap) | The user asked for the versions broken down to three numbers; small numbered releases (FAMILY §9) |
+| 0.1.3 | **Reference values checked against the papers the user supplied**: Botella & Peyret (1998, Tables 6, 9, 10), de Vahl Davis (1983, Tables V and VII), Armaly et al. (1983). Each row's source names its table or figure; `confirmed` is "original paper" | The brief: values must be re-checked against the original papers before they gate a release |
+| 0.1.3 | **The heated cavity's tolerance is de Vahl Davis's own estimated error per Rayleigh number** (0.1, 0.2, 0.3, 1%, his Table VII), not a flat 1%; his mid-plane velocity maxima are added | Read in the paper; the Nusselt numbers used are his cavity averages (Nu-bar), and his wall value Nu₀ differs from them by less than his error |
+| 0.1.3 | **Armaly's measured reattachment lengths were digitised from Figure 14**, calibrated against its tick marks (3.05, 4.05, 6.62, 8.61 step heights at Re 100, 150, 300, 389); only Re < 400, where the authors found the flow two-dimensional | The numbers appear only in figures. Figure 14 is labelled x₃/S but below Re 400 only the primary eddy exists, and its values match Figure 4's x₁ |
+| 0.1.3 | **The step's validation band is 10%, a judgement stated in the report** | The paper states no uncertainty. The band was set after the first comparison (6.3% at Re 100, 7.0% at Re 389); Armaly's own 2D computation gives about 8.05 at Re 389, beside 8.00 here, so the gap there is the experiment's three-dimensionality, as the authors say |
+| 0.1.3 | **The cylinder (Schäfer & Turek 1996) stays "secondary sources"** | The file supplied held pages 547–548 only (the introduction); the definitions and results are on pages 549–566 |
+| 0.1.3 | **The OpenAI "Finite Time Blowup for Navier–Stokes" paper (dated September 2026, supplied by the user) changes nothing in Flow** | It is a pure existence proof for 3D flow with an engineered force; it gives no computable flow or method, and 2D flows cannot blow up. At most a page in the teaching pack (0.9.0), once Flow has 3D and if the result is accepted |
 | 0.1.0 | **The window shell was built by a parallel worker session from Datum Plan's shell**, with a bridge so UI tests drive the real engine | Speed; the engine and the shell meet only at `wire::Out` and `Op` |
 
 ## 3. Roadmap
@@ -153,7 +159,7 @@ Every release is one small three-number version (FAMILY §9); each line below is
 | 0.1.0 | Skeleton: window, drawing, fluid, boundaries, files, updater, CI, release with provenance | ✅ |
 | 0.1.1 | Mesh, checks, solve, results, heat and buoyancy, examples, verification report, exports, DXF, `flow-cli` | ✅ |
 | 0.1.2 | The family sidebar (Setup first, then Geometry, Physics, Mesh, Solve, Results, Values, Plots, Checks, Verify), the step-by-step Setup panel, the Values, Plots, Checks and Verify pages; the roadmap in three-number releases | ✅ |
-| 0.1.3 | **Reference values from the papers:** every benchmark value checked against its original paper, and marked so in the verification report; the backward-facing step compared with the measurements of Armaly et al. (1983), with a verdict | 🔜 |
+| 0.1.3 | **Reference values from the papers:** the cavity and heated-cavity values checked against the original papers (the cylinder's still to do: its paper's later pages); the backward-facing step compared with the measurements of Armaly et al. (1983); the heated cavity's velocity maxima | ✅ |
 | 0.1.4 | **Results kept with the model:** results saved in the .dflow file, so a model opens solved; a manual range for the colour legend | 🔜 |
 | 0.1.5 | **Drawing and the report:** a drawn-arc tool and rounded corners; contours shaded with the elements' true curved values; long tables flow over pages in the PDF report | ⬜ |
 | 0.1.6 | **Guide and tutorial:** help › Guide: a printable user guide with pictures of the real window; help › Tutorial: one example that uses every view, with a note on each | ⬜ |
@@ -205,6 +211,13 @@ Every release is one small three-number version (FAMILY §9); each line below is
 - **Cut or not done:** nothing from the brief's cut list was cut (DXF import, the heat-sink example, VTU export and vorticity contours are all in). Not done: the guide and Help › Tutorial (FAMILY §10, not in the brief); multi-document tabs; a drawn-arc tool (arcs are typed as a bulge); Windows/macOS test jobs in CI (the build budget asks for Linux only; Windows runs nightly and at release).
 - **2-minute demo:** File › Examples › Flow past a cylinder, Re 20 → Home › Solve (about 5 s: watch the residuals fall) → Results: speed contours with streamlines; Results › Values: "Drag on the cylinder" 0.01116 N (× 500 = drag coefficient 5.58) → Help › Verification: 36 of 36 checks pass, the cylinder row among them.
 
+### 2026-11-18: Session 2, continued (0.1.3: the reference values from the papers)
+- The user supplied Botella & Peyret (1998), de Vahl Davis (1983), Armaly et al. (1983) and the first two pages of Schäfer & Turek (1996). Every cavity value matched the original tables; the heated cavity's Nusselt numbers are his cavity averages; Armaly's geometry and Reynolds number match the Step example.
+- Armaly's measured lengths were digitised from Figure 14 by calibrating pixels against the tick marks. A mesh and inlet-length study showed the computed lengths converged to 0.3% (2.86, 3.91, 6.64, 8.00), and found a bug in reading the reattachment point on fine meshes (a corner eddy), fixed.
+- New rows: mid-plane velocity maxima of the heated cavity (8), the step against experiment (4). 48 of 48 pass.
+- The user also supplied a paper claiming finite-time blowup for 3D Navier–Stokes (see Decisions): read, reported, no change to the plan.
+- Released 0.1.3.
+
 ### 2026-11-18: Session 2 (0.1.2: the sidebar, Setup, the roadmap in three-number releases)
 - The user confirmed 0.1.1 works on their computer (the first run of the Windows installer and app), and asked for the versions broken down to three numbers and for the left pane of every Datum app, both in 0.1.2.
 - The sidebar (from Datum Plan and Datum Plot), the Setup panel (from Datum Plan's pattern) and four pages; 14 new UI checks (133 in all).
@@ -221,5 +234,5 @@ Every release is one small three-number version (FAMILY §9); each line below is
 - Contours are drawn as four flat-shaded triangles per element (the values are quadratic); drawing speed above about 8 000 elements has not been timed.
 - The PDF report puts each section on fixed pages: a very long boundaries table or notes would overflow. Arc sides are typed as a bulge value; there is no drawn-arc tool.
 - No guide PDF and no Help › Tutorial yet; one document at a time.
-- Reference values of the benchmarks were confirmed from secondary sources only (see `docs/VERIFICATION.md`); the original papers could not be opened from the build session.
+- The cylinder benchmark's reference values and Kovasznay's solution are still from secondary sources (see `docs/VERIFICATION.md`); the other benchmarks were checked against their original papers in 0.1.3.
 - The Windows installer, the PDF writer and the update install are compile-checked for Windows here but first run for real in the release workflow.
