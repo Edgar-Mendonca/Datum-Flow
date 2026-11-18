@@ -43,23 +43,13 @@
   ],
   "roadmap": [
     {
-      "v": "0.1.5",
-      "title": "Drawing and the report",
-      "when": "Next",
-      "items": [
-        "A drawn-arc tool and rounded corners",
-        "Contours shaded with the elements' true curved values",
-        "Long tables flow over pages in the PDF report",
-        "Streamlines thin out where the region is drawn small, so the colours stay readable"
-      ]
-    },
-    {
       "v": "0.1.6",
       "title": "Guide and tutorial",
-      "when": "Soon",
+      "when": "Next",
       "items": [
         "Help › Guide: a printable user guide with pictures of the real window",
-        "Help › Tutorial: one example that uses every view, with a note on each"
+        "Help › Tutorial: one example that uses every view, with a note on each",
+        "The cylinder benchmark's reference values checked against its original paper"
       ]
     },
     {

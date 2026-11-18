@@ -432,7 +432,13 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
   check("a row opens to its source, how the reference was confirmed and the meshes", (await text(".dlg .vmore")).includes("Schäfer & Turek (1996)") && (await text(".dlg .vmore")).includes("secondary sources") && (await text(".dlg .vmore")).includes("Mesh by mesh"), await text(".dlg .vmore"));
   await shot("21-verification"); if (!realVer.checks.length) await site("verification-report"); await hear();
   await p.click('.dlg .btn:has-text("Print or save as PDF")'); await p.waitForTimeout(600);
-  check("the verification record prints as pages", (await p.locator(".pprev .ppage").count()) >= 4 && (await text(".pprev")).toLowerCase().includes("verification of datum flow"), `${await p.locator(".pprev .ppage").count()} pages: ${(await text(".pprev")).slice(0, 200)}`);
+  const flowed = await p.evaluate(() => [...document.querySelectorAll(".pprev .ppage .pbody")].map(b => ({ over: b.scrollHeight - b.clientHeight, text: b.innerText })));
+  check("the verification record's tables flow over pages, nothing cut off, the header repeated", flowed.length >= 2 && flowed.every(f => f.over <= 1) && flowed.some(f => f.text.toLowerCase().includes("(continued)")) && flowed.filter(f => f.text.includes("CASE") || f.text.includes("Case")).length >= 2, JSON.stringify(flowed.map(f => f.over)));
+  await p.click('.pset select >> nth=0'); await p.selectOption('.pset select >> nth=0', "A3"); await p.waitForTimeout(500);
+  const a3 = await p.evaluate(() => [...document.querySelectorAll(".pprev .ppage .pbody")].map(b => b.scrollHeight - b.clientHeight));
+  check("a larger paper lays the pages out again: fewer of them, nothing cut off", a3.length < flowed.length && a3.every(x => x <= 1), `${a3.length} on A3, ${flowed.length} on A4`);
+  await p.selectOption('.pset select >> nth=0', "A4"); await p.waitForTimeout(300);
+  check("the verification record prints as pages", (await p.locator(".pprev .ppage").count()) >= 2 && (await text(".pprev")).toLowerCase().includes("verification of datum flow"), `${await p.locator(".pprev .ppage").count()} pages: ${(await text(".pprev")).slice(0, 200)}`);
   await p.click(".bs aside .back"); await p.waitForTimeout(150);
   await p.evaluate(() => { window.__verification = null; });
   if (realVer.checks.length) { await rb("Help", "Verification"); await p.waitForTimeout(400); await site("verification-report"); await p.keyboard.press("Escape"); }
@@ -503,6 +509,40 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
   await p.click('.recent tr:has-text("Edited cylinder")'); await p.waitForTimeout(600);
   const edited = await state();
   check("results that no longer match the model are left out, with a note", !edited.has_results && edited.notes.some(n => n.includes("do not match")), JSON.stringify(edited.notes));
+
+  // ---------- 0.1.5: streamlines that thin out, arcs and rounded corners
+  await openExample("Heat-sink fin channel");
+  await run("Solve"); await solved();
+  await tab("Results"); await p.keyboard.press("f"); await p.waitForTimeout(400);
+  const fewLines = await p.evaluate(() => window.__streamCount());
+  for (let i = 0; i < 10; i++) { await p.mouse.move(...at(0.35, 0.5)); await p.mouse.wheel(0, -400); await p.waitForTimeout(40); }
+  await p.waitForTimeout(400);
+  const moreLines = await p.evaluate(() => window.__streamCount());
+  check("streamlines thin out in a long thin region seen whole, and come back when zoomed in", fewLines > 0 && fewLines < 12 && moreLines > fewLines, `${fewLines} → ${moreLines}`);
+  await shot("29-heatsink-streamlines"); await p.keyboard.press("f");
+  await openExample("Channel flow");
+  await tab("Geometry"); await p.keyboard.press("f"); await p.waitForTimeout(200);
+  const ch = (await state()).m.shapes[0].geom.pts;
+  const scr = await p.evaluate(pts => pts.map(q => window.__view.toScreen(q)), ch);
+  const cbox = await p.locator(".view canvas").boundingBox();
+  const px = q => [cbox.x + q[0], cbox.y + q[1]];
+  await p.click('.ribbon .rb:has-text("Arc Side")');
+  const sideMid = [(scr[0][0] + scr[1][0]) / 2, (scr[0][1] + scr[1][1]) / 2];
+  await p.mouse.click(...px(sideMid)); await p.waitForTimeout(100);
+  await p.mouse.move(...px([sideMid[0], sideMid[1] + 14])); await p.waitForTimeout(80);
+  await p.keyboard.down("Alt"); await p.mouse.click(...px([sideMid[0], sideMid[1] + 14])); await p.keyboard.up("Alt"); await p.waitForTimeout(300);
+  const bent = (await state()).m.shapes[0].geom;
+  check("Arc Side bends a side through the point clicked, outwards", bent.bulge[0] !== 0 && (await p.evaluate(() => 1)) === 1, JSON.stringify(bent.bulge));
+  await p.keyboard.press("Escape");
+  await p.click('.ribbon .rb:has-text("Round Corner")');
+  await p.mouse.click(...px(scr[2])); await p.waitForTimeout(200);
+  await p.fill(".dlg input", "0.003"); await p.click(".dlg .btn.pri"); await p.waitForTimeout(300);
+  const rounded = await state();
+  const rg = rounded.m.shapes[0].geom, rbulge = rg.bulge[2], chord = Math.hypot(rg.pts[3][0] - rg.pts[2][0], rg.pts[3][1] - rg.pts[2][1]);
+  const radius = chord / (2 * Math.sin(2 * Math.atan(Math.abs(rbulge))));
+  check("Round Corner rounds a corner with the radius typed", rg.pts.length === 5 && Math.abs(radius - 0.003) < 1e-12, JSON.stringify(rg));
+  check("the new arc between an outlet and a wall waits for its boundary, and the check says so", rounded.edges.filter(e => !e.boundary).length === 1);
+  await p.keyboard.press("Escape"); await shot("30-arc-round"); await hear();
 
   // Stop and resume
   await openExample("Lid-driven cavity, Re 100");

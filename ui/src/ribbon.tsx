@@ -101,7 +101,8 @@ const TPL_ICON: Record<string, string> = { channel: "inlet", "cavity-100": "lid"
 const fieldMenu = (): Item[] => [["speed", "Speed"], ["pressure", "Pressure"], ["temperature", "Temperature"], ["vorticity", "Vorticity"], ["u", "Velocity x"], ["v", "Velocity y"], ["stream", "Stream function"], ["none", "None (outlines only)"]].map(([k, l]) => ({ label: l, on: out()?.m.view.field === k, off: k === "temperature" && !out()?.m.physics.heat, run: () => cmd("field", k) }));
 
 const Draw = () => <>
-  <G l="Draw" h="draw"><B big i="rect" l="Rectangle" on={tool() === "rect"} run={() => C.tool("rect")} /><B big i="circle" l="Circle" on={tool() === "circle"} run={() => C.tool("circle")} /><B big i="poly" l="Polygon" on={tool() === "poly"} run={() => C.tool("poly")} /></G>
+  <G l="Draw" h="draw"><B big i="rect" l="Rectangle" on={tool() === "rect"} run={() => C.tool("rect")} /><B big i="circle" l="Circle" on={tool() === "circle"} run={() => C.tool("circle")} /><B big i="poly" l="Polygon" on={tool() === "poly"} run={() => C.tool("poly")} />
+    <S><B i="arc" l="Arc Side" on={tool() === "arc"} run={() => C.tool("arc")} title="Bend a side into an arc through a point you click" /><B i="roundc" l="Round Corner" on={tool() === "round"} run={() => C.tool("round")} title="Round a corner with an arc of a radius you type" /></S></G>
   <G l="Combine" h="combine"><S><B i="union" l="Add" on={!asHole()} run={() => C.hole(false)} title="New shapes are part of the flow region" /><B i="subtract" l="Subtract" on={asHole()} run={() => C.hole(true)} title="New shapes are cut out of the flow region (a body in the flow)" /></S></G>
 </>;
 const Steps = () => (

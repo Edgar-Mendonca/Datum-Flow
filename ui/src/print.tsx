@@ -2,8 +2,8 @@
 // view as drawn, a summary of the model, footer) is laid out here at real size and printed with
 // the WebView's print dialog, or written straight to a PDF. Other parts add report pages with
 // `setReportPages`.
-import { For, Show, JSX, createSignal, createMemo, onCleanup } from "solid-js";
-import { Portal } from "solid-js/web";
+import { For, Show, JSX, createSignal, createMemo, createEffect, createRoot, onCleanup } from "solid-js";
+import { Portal, render } from "solid-js/web";
 import { createStore } from "solid-js/store";
 import { invoke, num } from "./api";
 import { out, opts, toast, fmt, KIND_NAME } from "./store";
@@ -22,7 +22,83 @@ let seeded = false;
 
 /** Extra pages after the first (the PDF report's pages): each is the body of one page. */
 const [reportPages, setReportPagesRaw] = createSignal<(() => JSX.Element)[]>([]);
-export const setReportPages = (pages: (() => JSX.Element)[]) => setReportPagesRaw(pages);
+export const setReportPages = (pages: (() => JSX.Element)[]) => { setFlow(null); setReportPagesRaw(pages); };
+
+// ---------- report pages that lay themselves out
+/** A piece of a report: anything that stays whole, or a table that may be split between its rows
+ *  (its header is repeated on every page it reaches). A row may hold several <tr>. */
+export type Block = { el: () => JSX.Element } | { table: string; head: () => JSX.Element; rows: (() => JSX.Element)[] };
+type Piece = { el: () => JSX.Element } | { table: string; head: () => JSX.Element; rows: (() => JSX.Element)[]; more: boolean };
+const [flow, setFlow] = createSignal<Block[][] | null>(null);
+/** Report pages from sections of blocks: each section starts a page; blocks follow on, a new page
+ *  when the next will not fit; tables split between rows. Laid out again when the paper changes. */
+let laying = false;
+export const setReportFlow = (sections: Block[][]) => {
+  // Started on first use (the page geometry below is ready by then), and kept for the window's life.
+  if (!laying) { laying = true; createRoot(() => createEffect(() => { const f = flow(); if (!f) return; ps.paper; ps.landscape; ps.margins[0]; ps.margins[1]; ps.margins[2]; ps.margins[3]; setReportPagesRaw(paginate(f)); })); }
+  setFlow(sections);
+};
+
+/** Heights of things as they will print, measured off screen at the page body's width. */
+const measure = (width: number, make: () => JSX.Element): HTMLElement => {
+  const host = document.createElement("div");
+  host.style.cssText = `position:fixed;left:-20000px;top:0;width:${width}px;visibility:hidden`;
+  host.className = "ppage pmeasure";
+  document.body.append(host);
+  const inner = document.createElement("div");
+  inner.className = "rpage";
+  host.append(inner);
+  const dispose = render(make, inner);
+  (host as HTMLElement & { _dispose?: () => void })._dispose = () => { dispose(); host.remove(); };
+  return host;
+};
+const done = (h: HTMLElement) => (h as HTMLElement & { _dispose?: () => void })._dispose?.();
+
+const TableOf = (p: { piece: Extract<Piece, { table: string }> }) => (
+  <table class={p.piece.table}><thead>{p.piece.head()}</thead><For each={p.piece.rows}>{r => <tbody>{r()}</tbody>}</For></table>
+);
+const paginate = (sections: Block[][]): (() => JSX.Element)[] => {
+  const G = geometry(), bodyW = G.w - (ps.margins[1] + ps.margins[3]) * MM;
+  // The height left for the body: a blank page, measured with its header and footer.
+  const sk = document.createElement("div");
+  sk.className = "ppage"; sk.style.cssText = `position:fixed;left:-20000px;top:0;width:${G.w}px;height:${G.h}px;visibility:hidden`;
+  sk.innerHTML = `<div class="pin" style="left:0;top:0;width:${bodyW}px;height:${G.h - (ps.margins[0] + ps.margins[2]) * MM}px"><div class="phead"><div>Ag</div><div>Ag</div><div>Ag</div></div><div class="pbody"></div><div class="pfoot"><div>Ag</div><div>Ag</div><div>Ag</div></div></div>`;
+  document.body.append(sk);
+  // A little room to spare: tables drawn whole come out a pixel or two taller than their parts measured alone.
+  const H = (sk.querySelector(".pbody") as HTMLElement).clientHeight * 0.97 - 6;
+  sk.remove();
+  const GAP = 6, pages: Piece[][] = [];
+  for (const sec of sections) {
+    let page: Piece[] = [], used = 0;
+    const next = () => { pages.push(page); page = []; used = 0; };
+    for (const b of sec) {
+      if ("el" in b) {
+        const m = measure(bodyW, b.el), h = (m.firstChild as HTMLElement).offsetHeight; done(m);
+        if (page.length && used + h > H) next();
+        page.push({ el: b.el }); used += h + GAP;
+        continue;
+      }
+      const m = measure(bodyW, () => <TableOf piece={{ ...b, more: false }} />);
+      const t = m.querySelector("table")!, headH = t.tHead?.offsetHeight ?? 0, rowH = [...t.tBodies].map(x => x.offsetHeight);
+      done(m);
+      let start = 0;
+      while (start < b.rows.length) {
+        // As many rows as fit under the header; at least one on a fresh page.
+        let h = headH, end = start;
+        while (end < b.rows.length && used + h + rowH[end] <= H) h += rowH[end++];
+        if (end === start && page.length) { next(); continue; }
+        if (end === start) end = start + 1;
+        page.push({ table: b.table, head: b.head, rows: b.rows.slice(start, end), more: start > 0 });
+        used += h + GAP;
+        start = end;
+        if (start < b.rows.length) next();
+      }
+    }
+    if (page.length) next();
+  }
+  return pages.map(pg => () => <div class="rpage"><For each={pg}>{x => "el" in x ? x.el() : <>{x.more && <p class="rmore">(continued)</p>}<TableOf piece={x} /></>}</For></div>);
+};
+
 
 const expand = (s: string, page: number, pages: number) => {
   const o = out();

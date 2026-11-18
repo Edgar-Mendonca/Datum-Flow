@@ -9,8 +9,8 @@ import { Help } from "./help";
 import { num, Fluid, invoke } from "./api";
 import { issues, runChecks, genMesh, solve, mesh, summary, probeData, exportLine, exportProbes } from "./sim";
 import type { ValueRow, Report, Sample } from "./sim";
-import { ValuesTable, valuesTsv, LineChart, QUANT, ChecksPanel, VerTable, verSummary, verificationPages, checkCount, checkBad } from "./simui";
-import { setReportPages } from "./print";
+import { ValuesTable, valuesTsv, LineChart, QUANT, ChecksPanel, VerTable, verSummary, verificationFlow, checkCount, checkBad } from "./simui";
+import { setReportFlow } from "./print";
 import { setBackstage } from "./store";
 
 type Item = [View | "setup", string, string, string];
@@ -135,7 +135,7 @@ const VerificationPage = () => {
   const [r] = createResource(() => call<Report>("verification"));
   const s = () => r() ? verSummary(r()!) : { pass: 0, fail: 0 };
   return <Page title="Verification" help="verification" lead="The cases this version was tested on before release: problems whose answers are known. Any FAIL blocks a release. Click a row for its source."
-    tools={<Show when={r()}><button class="btn" onClick={() => { setReportPages(verificationPages(r()!)); setBackstage("print"); }}>Print or save as PDF…</button></Show>}>
+    tools={<Show when={r()}><button class="btn" onClick={() => { setReportFlow(verificationFlow(r()!)); setBackstage("print"); }}>Print or save as PDF…</button></Show>}>
     <Show when={r()}>
       <div class="vhead"><b class="chip big" classList={{ ok: s().fail === 0 && s().pass > 0, bad: s().fail > 0 }}>{s().fail ? `${s().fail} FAIL` : s().pass ? "ALL PASS" : "NO CHECKS"}</b>
         <div><b>Datum Flow {r()!.version}: {s().pass} of {r()!.checks.length} checks pass</b><span class="muted">Run on {r()!.date}{r()!.machine ? ` on ${r()!.machine}` : ""}{r()!.seconds ? `, ${num(r()!.seconds, 3)} s in all` : ""}.</span></div></div>

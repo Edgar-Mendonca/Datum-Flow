@@ -52,7 +52,7 @@ export const C = {
   undo: () => (running() ? toast("A solve is running: stop it before undoing.") : loadOut("undo")),
   redo: () => (running() ? toast("A solve is running: stop it before redoing.") : loadOut("redo")),
   // geometry
-  tool: (t: "select" | "pan" | "rect" | "circle" | "poly") => { setPickFor(null); setTool(tool() === t && t !== "select" ? "select" : t); },
+  tool: (t: "select" | "pan" | "rect" | "circle" | "poly" | "arc" | "round") => { setPickFor(null); setTool(tool() === t && t !== "select" ? "select" : t); },
   hole: (v: boolean) => setAsHole(v),
   del: () => { const s = sel(); if (s.kind === "shape") act({ op: "remove_shape", id: s.id }); else if (s.kind === "boundary") act({ op: "remove_boundary", id: s.id }); else toast("Select a shape or a boundary first."); },
   template: (id: string) => C.newModel(id),

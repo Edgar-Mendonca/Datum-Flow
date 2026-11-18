@@ -3,6 +3,8 @@
 // draws into the view: other parts add `layers` (the mesh, results, probes) and are drawn in order.
 import { createSignal, createEffect, onMount, onCleanup, Show } from "solid-js";
 import { Geom, Pt, Shape, EdgeRef, Boundary, num } from "./api";
+import { askText } from "./ui";
+import { fromU } from "./store";
 import { out, act, sel, setSel, tool, setTool, asHole, pickFor, setPickFor, showGrid, showNames, snapOn, themeTick, openMenu, Item, boundaryOf, toU, ulabel, toast, sameEdge, KIND_NAME } from "./store";
 
 // ---------- the transform (world metres, y up → screen pixels, y down)
@@ -69,7 +71,8 @@ export const edgePoints = (g: Geom, i: number): Pt[] => {
   if (g.type === "circle") return Array.from({ length: 73 }, (_, k) => [g.c[0] + g.r * Math.cos(k / 72 * 2 * Math.PI), g.c[1] + g.r * Math.sin(k / 72 * 2 * Math.PI)] as Pt);
   const n = g.pts.length, p = g.pts[i % n], q = g.pts[(i + 1) % n], b = g.bulge[i] ?? 0;
   if (!b || !isFinite(b)) return [p, q];
-  const a = arc(p, q, b), m = Math.max(4, Math.ceil(Math.abs(a.th) / (2 * Math.PI) * 72));
+  // Shallow arcs get enough pieces too: at least 24, and one per 5° of turn.
+  const a = arc(p, q, b), m = Math.max(24, Math.ceil(Math.abs(a.th) / (2 * Math.PI) * 72));
   return Array.from({ length: m + 1 }, (_, k) => k === 0 ? p : k === m ? q : [a.cen[0] + a.r * Math.cos(a.a0 + a.th * k / m), a.cen[1] + a.r * Math.sin(a.a0 + a.th * k / m)] as Pt);
 };
 export const edgeCount = (g: Geom) => (g.type === "circle" ? 1 : g.pts.length);
@@ -97,11 +100,22 @@ const len = (v: number) => `${num(toU("len", v), 4)} ${ulabel("len")}`;
 const edgeColour = (b: Boundary | undefined, css: (n: string) => string) =>
   !b ? css("--crit") : b.kind.type === "inlet" ? css("--blue") : b.kind.type === "outlet" ? css("--amber") : b.kind.type === "symmetry" ? css("--green") : css("--text");
 
+/** Points along the circular arc from a through m to b (a straight line when they line up). Drawing only. */
+const threePointArc = (a: Pt, m: Pt, b: Pt): Pt[] => {
+  const d = 2 * (a[0] * (m[1] - b[1]) + m[0] * (b[1] - a[1]) + b[0] * (a[1] - m[1]));
+  if (Math.abs(d) < 1e-12 * (Math.hypot(b[0] - a[0], b[1] - a[1]) ** 2)) return [a, b];
+  const s2 = (p: Pt) => p[0] * p[0] + p[1] * p[1];
+  const c: Pt = [(s2(a) * (m[1] - b[1]) + s2(m) * (b[1] - a[1]) + s2(b) * (a[1] - m[1])) / d, (s2(a) * (b[0] - m[0]) + s2(m) * (a[0] - b[0]) + s2(b) * (m[0] - a[0])) / d];
+  const r = Math.hypot(a[0] - c[0], a[1] - c[1]), ang = (p: Pt) => Math.atan2(p[1] - c[1], p[0] - c[0]), T = 2 * Math.PI;
+  const s = ((ang(b) - ang(a)) % T + T) % T, sm = ((ang(m) - ang(a)) % T + T) % T, sweep = sm < s ? s : s - T;
+  return Array.from({ length: 65 }, (_, i) => { const t = ang(a) + sweep * i / 64; return [c[0] + r * Math.cos(t), c[1] + r * Math.sin(t)] as Pt; });
+};
+
 export const Canvas = () => {
   let wrap!: HTMLDivElement, cv!: HTMLCanvasElement;
   const fills = document.createElement("canvas");
   // What is being drawn or dragged, in world coordinates.
-  const [draft, setDraft] = createSignal<{ kind: "rect"; a: Pt; b: Pt } | { kind: "circle"; a: Pt; b: Pt } | { kind: "poly"; pts: Pt[]; at: Pt } | null>(null);
+  const [draft, setDraft] = createSignal<{ kind: "rect"; a: Pt; b: Pt } | { kind: "circle"; a: Pt; b: Pt } | { kind: "poly"; pts: Pt[]; at: Pt } | { kind: "arc"; edge: EdgeRef; at: Pt } | null>(null);
   const [drag, setDrag] = createSignal<{ id: number; dx: number; dy: number } | { id: number; vertex: number; at: Pt } | null>(null);
   const [hover, setHover] = createSignal<EdgeRef | null>(null);
   const [space, setSpace] = createSignal(false);
@@ -116,6 +130,16 @@ export const Canvas = () => {
   };
   const at = (e: MouseEvent): Pt => { const r = cv.getBoundingClientRect(); return toWorld(e.clientX - r.left, e.clientY - r.top); };
 
+  /** The polygon corner under a world point (within a few pixels). */
+  const cornerAt = (w: Pt): { shape: number; corner: number } | null => {
+    const q = toScreen(w);
+    for (const s of [...(out()?.m.shapes ?? [])].reverse()) {
+      if (s.geom.type !== "poly") continue;
+      const i = s.geom.pts.findIndex(p => { const a = toScreen(p); return Math.hypot(a[0] - q[0], a[1] - q[1]) < 9; });
+      if (i >= 0) return { shape: s.id, corner: i };
+    }
+    return null;
+  };
   /** The edge or shape under a world point (edges first, within a few pixels). */
   const hit = (w: Pt): { edge?: EdgeRef; shape?: Shape } => {
     const m = out()?.m; if (!m) return {};
@@ -233,7 +257,16 @@ export const Canvas = () => {
     }
     // What is being drawn.
     const d = draft();
-    if (d) {
+    if (d && d.kind === "arc") {
+      // Preview of the side bent through the pointer (the engine works out the arc it keeps).
+      const sh = out()?.m.shapes.find(x => x.id === d.edge.shape);
+      if (sh?.geom.type === "poly") {
+        const n = sh.geom.pts.length, a = sh.geom.pts[d.edge.edge % n], b = sh.geom.pts[(d.edge.edge + 1) % n];
+        ctx.strokeStyle = css("--blue"); ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+        ctx.beginPath(); path(ctx, threePointArc(a, d.at, b)); ctx.stroke(); ctx.setLineDash([]);
+        const q = toScreen(d.at); ctx.fillStyle = css("--blue"); ctx.fillRect(q[0] - 3, q[1] - 3, 6, 6);
+      }
+    } else if (d) {
       ctx.strokeStyle = css("--blue"); ctx.fillStyle = css("--sel"); ctx.lineWidth = 1.5; ctx.setLineDash(asHole() ? [5, 4] : []); ctx.globalAlpha = 0.9;
       ctx.beginPath();
       let note = "";
@@ -277,6 +310,21 @@ export const Canvas = () => {
     if (tl === "circle") return setDraft({ kind: "circle", a: p, b: p });
     if (tl === "poly") { const d = draft(); return setDraft(d && d.kind === "poly" ? { kind: "poly", pts: [...d.pts, p], at: p } : { kind: "poly", pts: [p], at: p }); }
     const h = hit(w);
+    if (tl === "arc") {
+      const d = draft();
+      if (d?.kind === "arc") { setDraft(null); act({ op: "arc_through", shape: d.edge.shape, edge: d.edge.edge, through: p }); return; }
+      if (h.edge && h.shape?.geom.type === "poly") { setSel({ kind: "edge", ...h.edge }); return setDraft({ kind: "arc", edge: h.edge, at: w }); }
+      return toast("Click a side of a polygon or rectangle first.");
+    }
+    if (tl === "round") {
+      const c = cornerAt(w);
+      if (!c) return toast("Click a corner of a polygon or rectangle.");
+      askText("Round corner", `Radius (${ulabel("len")})`, "").then(v => {
+        const r = v === null ? NaN : parseFloat(v.replace(",", "."));
+        if (v !== null) { if (r > 0) act({ op: "round_corner", shape: c.shape, corner: c.corner, radius: fromU("len", r) }); else toast("The radius must be a number above zero."); }
+      });
+      return;
+    }
     if (tl === "pick") { if (h.edge) togglePick(h.edge); return; }
     // A corner handle of the selected polygon.
     const s0 = sel(), cur = s0.kind === "shape" ? out()!.m.shapes.find(s => s.id === s0.id) : undefined;
@@ -295,8 +343,9 @@ export const Canvas = () => {
     if (pan) { const t = xf(); setXf({ k: t.k, cx: pan.cx - (e.clientX - pan.x) / t.k, cy: pan.cy + (e.clientY - pan.y) / t.k }); return; }
     if (clickHook?.(w, e, "move")) return;
     const d = draft(), p = snap(w, e);
-    if (d && d.kind !== "poly" && e.buttons & 1) return setDraft({ ...d, b: p });
+    if (d && (d.kind === "rect" || d.kind === "circle") && e.buttons & 1) return setDraft({ ...d, b: p });
     if (d && d.kind === "poly") return setDraft({ ...d, at: p });
+    if (d && d.kind === "arc") return setDraft({ ...d, at: p });
     if (press?.shape && e.buttons & 1) {
       if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < 4 && !drag()) return;
       if (press.vertex !== undefined) return setDrag({ id: press.shape.id, vertex: press.vertex, at: p });
@@ -366,12 +415,13 @@ export const Canvas = () => {
   createEffect(paint);
   // A drawing tool put away drops what was half drawn.
   createEffect(() => { if (tool() !== "poly" && draft()?.kind === "poly") setDraft(null); });
+  createEffect(() => { if (tool() !== "arc" && draft()?.kind === "arc") setDraft(null); });
   // A new model (another file, an example) is shown whole.
   let shown = "";
   createEffect(() => { const o = out(), s = viewSize(); const k = o ? `${o.path}|${o.m.name}|${s.w > 0}` : ""; if (o && k !== shown) { shown = k; queueMicrotask(() => fit()); } });
 
   return (
-    <div class="view" ref={wrap} tabindex="0" classList={{ panning: tool() === "pan" || space(), drawing: ["rect", "circle", "poly"].includes(tool()), picking: tool() === "pick" }}>
+    <div class="view" ref={wrap} tabindex="0" classList={{ panning: tool() === "pan" || space(), drawing: ["rect", "circle", "poly", "arc", "round"].includes(tool()), picking: tool() === "pick" }}>
       <canvas ref={cv} onMouseDown={down} onDblClick={() => draft()?.kind === "poly" && finishPoly()} onContextMenu={context} />
       <Show when={out() && !out()!.m.shapes.length && !draft() && !["rect", "circle", "poly"].includes(tool())}>
         <div class="vempty"><b>Draw the flow region</b><span>Start with Geometry › Rectangle, Circle or Polygon, pick a template, or open an example from File › Examples.</span>
@@ -380,7 +430,10 @@ export const Canvas = () => {
       <Show when={tool() !== "select" && tool() !== "pan"}>
         <div class="vhint">{tool() === "pick" ? `Click the edges of “${boundaryOf(pickFor() ?? -1)?.name ?? "the boundary"}”. Click again to take one off. Esc when done.`
           : tool() === "poly" ? "Click each corner. Enter or a double-click closes the polygon; Backspace takes a corner back; Esc cancels."
-          : tool() === "rect" ? "Press, drag and release to draw a rectangle. Esc cancels." : "Press at the centre, drag to the radius and release. Esc cancels."}{asHole() && tool() !== "pick" ? " Subtract is on: the shape will be cut out of the flow region." : ""}</div>
+          : tool() === "rect" ? "Press, drag and release to draw a rectangle. Esc cancels."
+          : tool() === "arc" ? (draft()?.kind === "arc" ? "Move to where the arc should pass, and click. A point on the side's line makes it straight again. Esc cancels." : "Click the side of a polygon or rectangle to bend into an arc.")
+          : tool() === "round" ? "Click a corner to round it, then type the radius. The corner's two sides must be straight."
+          : "Press at the centre, drag to the radius and release. Esc cancels."}{asHole() && tool() !== "pick" ? " Subtract is on: the shape will be cut out of the flow region." : ""}</div>
       </Show>
     </div>
   );

@@ -20,7 +20,7 @@ export const HELP: Record<string, Topic> = {
     how: ["The sidebar on the left opens each step as a view, and Setup walks through them in order; the model tree beside it lists the parts of the model.", "Check › Checks says what is still missing before a solve."] },
   draw: { t: "Draw", what: "The flow region is drawn from rectangles, circles and polygons. Shapes that add make the region; shapes that subtract cut bodies and holes out of it.",
     how: ["Rectangle and Circle: press, drag, release. Polygon: click each corner; Enter or a double-click closes it, Esc cancels.", "Type exact sizes on the right after drawing.", "A side becomes an arc when you give it a bulge on the right: 1 is a half circle, 0.414 a quarter."],
-    tip: "The flow region is everything inside the adding shapes and outside the subtracting ones." },
+    tip: "The flow region is everything inside the adding shapes and outside the subtracting ones. Arc Side bends a side through a point you click; Round Corner rounds a corner with a radius you type." },
   combine: { t: "Add and subtract", what: "Add makes the next shapes part of the flow region. Subtract makes them bodies in the flow: a cylinder in a channel, a fin, a baffle.",
     how: ["Pick Add or Subtract, then draw.", "Change a shape later with the Add / Subtract switch on the right."] },
   edit: { t: "Edit", what: "Move, rename and delete shapes, and name their edges.",

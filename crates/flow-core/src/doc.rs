@@ -20,6 +20,10 @@ pub enum Op {
     /// Change a shape's outline (boundaries on edges that remain are kept).
     SetGeom { id: u32, geom: Geom },
     SetShape { id: u32, name: String, hole: bool },
+    /// Make a polygon's side an arc through a point (a point on the side's line makes it straight).
+    ArcThrough { shape: u32, edge: u32, through: [f64; 2] },
+    /// Round a polygon's corner with an arc of the given radius, between its two straight sides.
+    RoundCorner { shape: u32, corner: u32, radius: f64 },
     MoveShape { id: u32, dx: f64, dy: f64 },
     RemoveShape { id: u32 },
     NameEdge { shape: u32, edge: u32, name: String },
@@ -136,6 +140,61 @@ fn edit(m: &mut Model, op: Op) -> Result<(), String> {
             let s = m.shapes.iter_mut().find(|s| s.id == id).ok_or("That shape no longer exists.")?;
             s.edges.resize(geom.edges(), String::new());
             s.geom = geom;
+        }
+        Op::ArcThrough { shape, edge, through } => {
+            finite(&through, "The point")?;
+            let s = m.shapes.iter_mut().find(|s| s.id == shape).ok_or("That shape no longer exists.")?;
+            let Geom::Poly { pts, bulge } = &mut s.geom else { return Err("Only the sides of a polygon or rectangle can be made arcs.".into()) };
+            let n = pts.len();
+            let e = edge as usize;
+            if e >= n { return Err("That side no longer exists.".into()); }
+            let b = bulge_through(pts[e], pts[(e + 1) % n], through).ok_or("No arc goes there: pick a point away from the side's ends.")?;
+            bulge.resize(n, 0.0);
+            bulge[e] = b;
+            if let Some(p) = s.geom.problem() { return Err(format!("That arc cannot be used: {p}.")); }
+        }
+        Op::RoundCorner { shape, corner, radius } => {
+            finite(&[radius], "The radius")?;
+            if radius <= 0.0 { return Err("The radius must be above zero.".into()); }
+            let s = m.shapes.iter_mut().find(|s| s.id == shape).ok_or("That shape no longer exists.")?;
+            let Geom::Poly { pts, bulge } = &mut s.geom else { return Err("Only the corners of a polygon or rectangle can be rounded.".into()) };
+            let n = pts.len();
+            let i = corner as usize;
+            if i >= n { return Err("That corner no longer exists.".into()); }
+            bulge.resize(n, 0.0);
+            let (before, after) = ((i + n - 1) % n, i);
+            if bulge[before] != 0.0 || bulge[after] != 0.0 { return Err("Only a corner between two straight sides can be rounded.".into()); }
+            let (p, a, b) = (pts[i], pts[(i + n - 1) % n], pts[(i + 1) % n]);
+            let (la, lb) = ((a[0] - p[0]).hypot(a[1] - p[1]), (b[0] - p[0]).hypot(b[1] - p[1]));
+            let (u, w) = ([(a[0] - p[0]) / la, (a[1] - p[1]) / la], [(b[0] - p[0]) / lb, (b[1] - p[1]) / lb]);
+            let alpha = (u[0] * w[0] + u[1] * w[1]).clamp(-1.0, 1.0).acos();
+            if !(1e-3..=std::f64::consts::PI - 1e-3).contains(&alpha) { return Err("That corner is straight or folded back; there is nothing to round.".into()); }
+            let d = radius / (alpha / 2.0).tan();
+            if d >= 0.999 * la.min(lb) {
+                return Err(format!("The radius is too large for the sides at that corner: at most about {:.3e} m here.", 0.999 * la.min(lb) * (alpha / 2.0).tan()));
+            }
+            let (ta, tb) = ([p[0] + u[0] * d, p[1] + u[1] * d], [p[0] + w[0] * d, p[1] + w[1] * d]);
+            // The arc is tangent to both sides and bends towards the corner.
+            let mag = ((std::f64::consts::PI - alpha) / 4.0).tan();
+            let side = |x: [f64; 2], y: [f64; 2], q: [f64; 2]| (y[0] - x[0]) * (q[1] - x[1]) - (y[1] - x[1]) * (q[0] - x[0]);
+            let fb = if side(ta, tb, arc_mid(ta, tb, mag)).signum() == side(ta, tb, p).signum() { mag } else { -mag };
+            pts[i] = ta;
+            pts.insert(i + 1, tb);
+            bulge.insert(i, fb);
+            // Sides after the new arc move up by one: keep names, boundaries and local sizes on them.
+            let name = s.edges.get(before).cloned().unwrap_or_default();
+            s.edges.insert(i, if name.is_empty() { String::new() } else { format!("{name} (round)") });
+            if let Some(p) = s.geom.problem() { return Err(format!("That rounding cannot be used: {p}.")); }
+            let shift = |e: &mut EdgeRef| if e.shape == shape && e.edge as usize >= i { e.edge += 1 };
+            for b in &mut m.boundaries {
+                b.edges.iter_mut().for_each(shift);
+                // The new arc joins the boundary of its two sides when they share one.
+                let has = |k: usize| b.edges.contains(&EdgeRef { shape, edge: k as u32 });
+                if has(before) && has(i + 1) { b.edges.push(EdgeRef { shape, edge: i as u32 }); b.edges.sort(); }
+            }
+            for r in &mut m.mesh.refine {
+                if let Target::Edge { shape: sh, edge } = &mut r.at { if *sh == shape && *edge as usize >= i { *edge += 1; } }
+            }
         }
         Op::SetShape { id, name: n, hole } => {
             let s = m.shapes.iter_mut().find(|s| s.id == id).ok_or("That shape no longer exists.")?;

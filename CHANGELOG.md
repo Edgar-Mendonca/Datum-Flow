@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.5 — 2026-11-18
+
+Arcs and rounded corners, smoother colours, readable streamlines, and reports whose tables flow over pages.
+
+- **Arc Side.** Geometry › Arc Side: click a side of a polygon or rectangle, then click where the arc should pass. A point on the side's line makes it straight again.
+- **Round Corner.** Geometry › Round Corner: click a corner and type the radius. The arc meets both sides smoothly; where the two sides share a boundary the arc joins it, and otherwise the setup check asks you to give it one.
+- **Outlines checked with their arcs.** An arc that would cross another side is refused at once, with the reason, instead of failing later in the mesher.
+- **Smoother colours.** Contours now follow each element's curved (quadratic) values instead of four flat pieces per element.
+- **Readable streamlines.** Streamlines that would crowd closer than a few pixels are left out, so in a long thin region seen whole (the heat sink) they no longer hide the colours. Zoom in and they come back.
+- **Reports that flow.** The PDF report and the printed verification record lay themselves out on the paper chosen: tables split between rows, carry their header onto the next page, say "(continued)", and nothing is cut off. A larger paper or smaller margins give fewer pages.
+- Shallow arcs are drawn smoothly in the view.
+
 ## 0.1.4 — 2026-11-18
 
 Models open solved, and the colours of results can be fixed by hand.

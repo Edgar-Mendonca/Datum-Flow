@@ -692,3 +692,5 @@ button.irow:hover, .irow span:hover { color: var(--blue); }
 .stpl svg { width: 22px; height: 22px; }
 .setup > footer { display: flex; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--line); flex: none; }
 @media print { .side, .setup, .pgview { display: none !important; } }
+.rpage .rmore { font: 500 9px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #5B6878; }
+.pmeasure { contain: none !important; }

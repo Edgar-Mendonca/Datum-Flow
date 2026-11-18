@@ -43,7 +43,7 @@ export type Sel =
 export const [sel, setSel] = createSignal<Sel>({ kind: "model" });
 
 /** The active tool of the 2D view. */
-export type Tool = "select" | "pan" | "rect" | "circle" | "poly" | "pick";
+export type Tool = "select" | "pan" | "rect" | "circle" | "poly" | "pick" | "arc" | "round";
 export const [tool, setTool] = createSignal<Tool>("select");
 /** New shapes are cut out of the flow region (a body) instead of added to it. */
 export const [asHole, setAsHole] = createSignal(false);

@@ -46,8 +46,11 @@ export const autoRange = (f: NodalField, map: string): [number, number] => {
   return f.max > f.min ? [f.min, f.max] : [f.min - 0.5, f.min + 0.5];
 };
 
-// Each six-node triangle is drawn as four straight ones through its midside nodes.
+// Each six-node triangle is covered by four straight ones through its midside nodes (so curved
+// sides follow their arcs); inside them the colour follows the element's quadratic values.
 const SUB = [[0, 3, 5], [3, 1, 4], [5, 4, 2], [3, 4, 5]];
+/** The parent triangle's area coordinates of its six nodes. */
+const NODE_L = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [0.5, 0.5, 0], [0, 0.5, 0.5], [0.5, 0, 0.5]];
 
 // ---------- filled contours: rasterised into a picture, redone after pans and zooms settle
 let pic: { cv: HTMLCanvasElement; key: string; cx: number; cy: number; k: number; w: number; h: number } | null = null, picTimer = 0;
@@ -75,7 +78,7 @@ const raster = (m: MeshView, f: NodalField, map: string, bands: number, t: { cx:
       const ax = sx[s[0]], ay = sy[s[0]], bx = sx[s[1]], by = sy[s[1]], cx = sx[s[2]], cy = sy[s[2]];
       const det = (bx - ax) * (cy - ay) - (cx - ax) * (by - ay);
       if (det === 0) continue;
-      const id = 1 / det, va = sv[s[0]], vb = sv[s[1]], vc = sv[s[2]];
+      const id = 1 / det, A = NODE_L[s[0]], B = NODE_L[s[1]], Cn = NODE_L[s[2]];
       const px0 = Math.max(0, Math.floor(Math.min(ax, bx, cx))), px1 = Math.min(W - 1, Math.ceil(Math.max(ax, bx, cx)));
       const py0 = Math.max(0, Math.floor(Math.min(ay, by, cy))), py1 = Math.min(H - 1, Math.ceil(Math.max(ay, by, cy)));
       // A little slack so neighbouring triangles leave no gaps.
@@ -87,7 +90,9 @@ const raster = (m: MeshView, f: NodalField, map: string, bands: number, t: { cx:
           const fx = x + 0.5 - ax;
           const l1 = (fx * (cy - ay) - (cx - ax) * fy) * id, l2 = ((bx - ax) * fy - fx * (by - ay)) * id, l0 = 1 - l1 - l2;
           if (l0 < eps || l1 < eps || l2 < eps) continue;
-          const c = l0 * va + l1 * vb + l2 * vc;
+          // The parent's area coordinates at this pixel, then its six quadratic shape functions.
+          const L1 = l0 * A[0] + l1 * B[0] + l2 * Cn[0], L2 = l0 * A[1] + l1 * B[1] + l2 * Cn[1], L3 = 1 - L1 - L2;
+          const c = L1 * (2 * L1 - 1) * sv[0] + L2 * (2 * L2 - 1) * sv[1] + L3 * (2 * L3 - 1) * sv[2] + 4 * (L1 * L2 * sv[3] + L2 * L3 * sv[4] + L3 * L1 * sv[5]);
           px[row] = col[c <= 0 ? 0 : c >= 255 ? 255 : c | 0];
         }
       }
@@ -165,7 +170,7 @@ const drawMesh = (ctx: CanvasRenderingContext2D, env: Env) => {
 };
 
 // ---------- streamlines: the level lines of the stream function, found once per field
-let lineCache: { of: NodalField; segs: Float32Array } | null = null;
+let lineCache: { of: NodalField; byLevel: Float32Array[] } | null = null;
 /** Levels for `count` streamlines, spread evenly over the region's area (not over its nodes,
  *  which crowd where the mesh is fine): slow eddies get lines too. */
 const streamLevels = (m: MeshView, f: NodalField, count: number) => {
@@ -186,36 +191,78 @@ const streamLevels = (m: MeshView, f: NodalField, count: number) => {
   }
   return out;
 };
-const streamSegs = (m: MeshView, f: NodalField) => {
-  if (lineCache?.of === f) return lineCache.segs;
-  const out: number[] = [], n = m.nodes, v = f.values, lv = streamLevels(m, f, 26);
-  const cut = (i: number, j: number, c: number) => { const a = v[i] as number, b = v[j] as number, s = (c - a) / (b - a); out.push(n[2 * i] + (n[2 * j] - n[2 * i]) * s, n[2 * i + 1] + (n[2 * j + 1] - n[2 * i + 1]) * s); };
+/** The segments of every streamline, one array per level (world coordinates, x0 y0 x1 y1 …). */
+const streamSegs = (m: MeshView, f: NodalField): Float32Array[] => {
+  if (lineCache?.of === f) return lineCache.byLevel;
+  const n = m.nodes, v = f.values, lv = streamLevels(m, f, 26), outs: number[][] = lv.map(() => []);
+  const cut = (o: number[], i: number, j: number, c: number) => { const a = v[i] as number, b = v[j] as number, s = (c - a) / (b - a); o.push(n[2 * i] + (n[2 * j] - n[2 * i]) * s, n[2 * i + 1] + (n[2 * j + 1] - n[2 * i + 1]) * s); };
   for (let e = 0; e < m.tris.length; e += 6) for (const s of SUB) {
     const i = m.tris[e + s[0]], j = m.tris[e + s[1]], k = m.tris[e + s[2]], a = v[i], b = v[j], c = v[k];
     if (a === null || b === null || c === null) continue;
     const lo = Math.min(a, b, c), hi = Math.max(a, b, c);
     if (lo === hi) continue;
-    for (const l of lv) {
-      if (l < lo || l > hi) continue;
+    lv.forEach((l, li) => {
+      if (l < lo || l > hi) return;
       const pa = a > l, pb = b > l, pc = c > l;
-      if (pa === pb && pb === pc) continue;
-      if (pa !== pb) cut(i, j, l);
-      if (pb !== pc) cut(j, k, l);
-      if (pc !== pa) cut(k, i, l);
-    }
+      if (pa === pb && pb === pc) return;
+      const o = outs[li];
+      if (pa !== pb) cut(o, i, j, l);
+      if (pb !== pc) cut(o, j, k, l);
+      if (pc !== pa) cut(o, k, i, l);
+    });
   }
-  lineCache = { of: f, segs: new Float32Array(out) };
-  return lineCache.segs;
+  lineCache = { of: f, byLevel: outs.map(o => new Float32Array(o)) };
+  return lineCache.byLevel;
+};
+/** The order streamlines are offered in: the middle one, then the quarters, the eighths…, so a
+ *  thinned set is still spread over the whole flow. */
+const spreadOrder = (n: number) => {
+  const out: number[] = [], seen = new Set<number>();
+  for (let step = 1; step <= 64 && out.length < n; step *= 2)
+    for (let j = 1; j < 2 * step; j += 2) { const i = Math.floor((j / (2 * step)) * n); if (i < n && !seen.has(i)) { seen.add(i); out.push(i); } }
+  for (let i = 0; i < n; i++) if (!seen.has(i)) out.push(i);
+  return out;
+};
+/** Which streamlines to draw at this zoom: a line is left out when much of it would run closer
+ *  than a few pixels to one already drawn, so lines never crowd into a block that hides the
+ *  colours (in a long thin region seen whole, only a few remain; zoom in and the rest return). */
+const SPACING = 6;
+let pickCache: { of: Float32Array[]; zoom: number; keep: Float32Array[] } | null = null;
+const visibleLines = (byLevel: Float32Array[], k: number) => {
+  const zoom = Math.round(Math.log(k) / Math.log(1.15));
+  if (pickCache && pickCache.of === byLevel && pickCache.zoom === zoom) return pickCache.keep;
+  const cell = SPACING / k, used = new Map<number, number>(), keep: Float32Array[] = [];
+  const key = (x: number, y: number) => Math.floor(x / cell) * 1_000_003 + Math.floor(y / cell);
+  for (const li of spreadOrder(byLevel.length)) {
+    const s = byLevel[li];
+    if (!s.length) continue;
+    let near = 0, total = 0;
+    for (let q = 0; q < s.length; q += 4) {
+      total++;
+      const kx = key((s[q] + s[q + 2]) / 2, (s[q + 1] + s[q + 3]) / 2);
+      // The cell or a neighbour already holds another line.
+      for (const d of [0, 1, -1, 1_000_003, -1_000_003]) { const o = used.get(kx + d); if (o !== undefined && o !== li) { near++; break; } }
+    }
+    if (near > 0.2 * total) continue;
+    for (let q = 0; q < s.length; q += 4) used.set(key((s[q] + s[q + 2]) / 2, (s[q + 1] + s[q + 3]) / 2), li);
+    keep.push(s);
+  }
+  pickCache = { of: byLevel, zoom, keep };
+  return keep;
 };
 const drawStream = (ctx: CanvasRenderingContext2D, env: Env) => {
   const m = mesh(), f = stream();
   if (!m || !f || f.values.length * 2 !== m.nodes.length) return;
+  const lines = visibleLines(streamSegs(m, f), env.k);
   const filled = !!field();
   // Over colours: dark lines with a light edge, readable on every map. On the bare region: ink.
-  if (filled) { ctx.lineWidth = 2.2; ctx.strokeStyle = "rgba(255,255,255,.45)"; strokeSegs(ctx, env, streamSegs(m, f)); }
-  ctx.lineWidth = 1; ctx.strokeStyle = filled ? "rgba(12,20,32,.85)" : env.css("--text2");
-  strokeSegs(ctx, env, streamSegs(m, f));
+  for (const pass of filled ? [0, 1] : [1]) {
+    ctx.lineWidth = pass ? 1 : 2.2; ctx.strokeStyle = pass ? (filled ? "rgba(12,20,32,.85)" : env.css("--text2")) : "rgba(255,255,255,.45)";
+    for (const s of lines) strokeSegs(ctx, env, s);
+  }
 };
+/** How many streamlines are drawn now (for the tests). */
+export const streamCount = () => pickCache?.keep.length ?? 0;
 
 // ---------- arrows
 const drawArrows = (ctx: CanvasRenderingContext2D, env: Env) => {
@@ -279,6 +326,7 @@ const drawMarks = (ctx: CanvasRenderingContext2D, env: Env) => {
 
 /** Keep the view's layers in step with what the engine has sent. Called once, inside the app. */
 export const initDraw = () => {
+  (window as unknown as { __streamCount: () => number }).__streamCount = streamCount;
   createEffect(() => {
     const o = out(), m = mesh(), f = field(), st = stream(), q = showQuality();
     themeTick(); arrowData(); probeData(); placing();

@@ -46,6 +46,7 @@ export interface Out {
 export type Op =
   | { op: "set_name"; name: string } | { op: "set_notes"; notes: string } | { op: "set_units"; units: "SI" | "US" } | { op: "set_grid"; grid: number }
   | { op: "add_shape"; name: string; hole: boolean; geom: Geom; edges?: string[] } | { op: "set_geom"; id: number; geom: Geom } | { op: "set_shape"; id: number; name: string; hole: boolean }
+  | { op: "arc_through"; shape: number; edge: number; through: Pt } | { op: "round_corner"; shape: number; corner: number; radius: number }
   | { op: "move_shape"; id: number; dx: number; dy: number } | { op: "remove_shape"; id: number } | { op: "name_edge"; shape: number; edge: number; name: string }
   | { op: "set_fluid"; fluid: Fluid } | { op: "set_physics"; physics: Physics } | { op: "set_boundary"; boundary: Boundary } | { op: "remove_boundary"; id: number } | { op: "wall_the_rest" }
   | { op: "set_mesh"; mesh: MeshSettings } | { op: "set_solver"; solver: SolverSettings } | { op: "set_monitors"; monitors: Monitor[] } | { op: "set_probes"; probes: Probe[] }

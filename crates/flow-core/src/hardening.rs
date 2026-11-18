@@ -59,7 +59,9 @@ fn random_op(r: &mut Rng, m: &Model) -> Op {
         _ => { let (x, y, w) = (r.f() * 4.0, r.f() * 4.0, 0.2 + r.f()); Geom::rect(x, y, x + w, y + w) }
     };
     let edges = |r: &mut Rng| (0..r.pick(4)).map(|_| EdgeRef { shape: sid, edge: r.pick(6) as u32 }).collect::<Vec<_>>();
-    match r.pick(20) {
+    match r.pick(22) {
+        20 => Op::ArcThrough { shape: sid, edge: r.pick(6) as u32, through: [h(r), h(r)] },
+        21 => Op::RoundCorner { shape: sid, corner: r.pick(6) as u32, radius: h(r) },
         0 => Op::SetName { name: if r.pick(3) == 0 { String::new() } else { "Case \u{0} α".into() } },
         1 => Op::SetUnits { units: if r.pick(2) == 0 { Units::SI } else { Units::US } },
         2 => Op::SetGrid { grid: h(r) },
@@ -111,6 +113,52 @@ fn a_failed_edit_leaves_the_document_exactly_as_it_was() {
         assert!(d.apply(op).is_err(), "{text} should fail");
         assert!(d.m == before && !d.can_undo() && d.revision == 0, "{text} changed the document");
     }
+}
+
+#[test]
+fn arcs_through_a_point_and_rounded_corners() {
+    // A side bent through a point: the arc passes through it, on either side, or goes straight again.
+    let mut d = Doc::new(crate::examples::channel());
+    for t in [[0.05, 0.004], [0.05, -0.003], [0.02, -0.001]] {
+        d.apply(Op::ArcThrough { shape: 1, edge: 0, through: t }).unwrap();
+        let Geom::Poly { pts, bulge } = &d.m.shapes[0].geom else { panic!() };
+        let (c, r, _, _) = arc(pts[0], pts[1], bulge[0]);
+        assert!(((t[0] - c[0]).hypot(t[1] - c[1]) - r).abs() < 1e-12, "{t:?}");
+        // And between the side's ends, not on the other part of the circle.
+        let mid = arc_mid(pts[0], pts[1], bulge[0]);
+        assert!((mid[1] > 0.0) == (t[1] > 0.0));
+    }
+    d.apply(Op::ArcThrough { shape: 1, edge: 0, through: [0.05, 0.0] }).unwrap();
+    assert!(matches!(&d.m.shapes[0].geom, Geom::Poly { bulge, .. } if bulge[0] == 0.0));
+    assert!(d.apply(Op::ArcThrough { shape: 1, edge: 0, through: [0.0, 0.0] }).is_err());
+    // An arc that would cross the far side is refused.
+    assert!(d.apply(Op::ArcThrough { shape: 1, edge: 0, through: [0.05, 0.02] }).unwrap_err().contains("cannot be used"));
+    // A rounded corner of the step: tangent to both sides, the right radius, area cut by r²(1 − π/4).
+    let mut d = Doc::new(crate::examples::step(100.0));
+    let before = d.m.shapes[0].geom.area().abs();
+    let r = 0.001;
+    // Corner 3 is the outlet's lower corner (a convex 90° corner); the floor and the outlet keep their boundaries.
+    d.apply(Op::RoundCorner { shape: 1, corner: 3, radius: r }).unwrap();
+    let Geom::Poly { pts, bulge } = &d.m.shapes[0].geom else { panic!() };
+    assert!(pts.len() == 7 && bulge[3] != 0.0);
+    let (c, rr, _, th) = arc(pts[3], pts[4], bulge[3]);
+    assert!((rr - r).abs() < 1e-12 && (th.abs() - std::f64::consts::FRAC_PI_2).abs() < 1e-12, "{rr} {th}");
+    assert!((c[0] - (0.147 - r)).abs() < 1e-12 && (c[1] - r).abs() < 1e-12, "{c:?}");
+    assert!((before - d.m.shapes[0].geom.area().abs() - r * r * (1.0 - std::f64::consts::FRAC_PI_4)).abs() < 1e-15);
+    // Edge numbers after the corner moved up: the outlet is still the outlet; the new arc has no boundary
+    // (floor and outlet differ), so the setup check will ask for one.
+    let outlet = d.m.boundaries.iter().find(|b| b.name == "Outlet").unwrap();
+    assert_eq!(outlet.edges, vec![EdgeRef { shape: 1, edge: 4 }]);
+    assert!(d.m.boundary_of(EdgeRef { shape: 1, edge: 3 }).is_none() && d.m.shapes[0].edges[4] == "Outlet");
+    // Rounding a corner between two walls keeps the arc on the walls.
+    let mut d = Doc::new(crate::examples::cavity(100.0));
+    d.apply(Op::RoundCorner { shape: 1, corner: 1, radius: 0.1 }).unwrap();
+    assert!(d.m.boundary(3).unwrap().edges.contains(&EdgeRef { shape: 1, edge: 1 }) && d.m.boundary(2).unwrap().edges == vec![EdgeRef { shape: 1, edge: 3 }]);
+    // Too large, a corner next to an arc, a negative radius: refused, nothing changed.
+    let m0 = d.m.clone();
+    assert!(d.apply(Op::RoundCorner { shape: 1, corner: 3, radius: 5.0 }).unwrap_err().contains("too large"));
+    assert!(d.apply(Op::RoundCorner { shape: 1, corner: 2, radius: 0.05 }).unwrap_err().contains("straight sides"));
+    assert!(d.apply(Op::RoundCorner { shape: 1, corner: 0, radius: -1.0 }).is_err() && d.m == m0);
 }
 
 #[test]

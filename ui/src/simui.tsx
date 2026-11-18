@@ -11,7 +11,7 @@ import { Help } from "./help";
 import { wire } from "./cmds";
 import { fit, viewPicture, cursor } from "./canvas";
 import { setPanel } from "./bottom";
-import { setReportPages } from "./print";
+import { setReportPages, setReportFlow, Block } from "./print";
 import { mesh, showQuality, setShowQuality, issues, runChecks, running, rows, monValues, monNames, summary, field, placing, lineStart, hoverSample, hoverAt, ui, exportProbes, exportLine, stop, Issue, Sample, ValueRow, Report, Check, Summary, ResRow } from "./sim";
 import { lut, fieldRange, autoRange, QUALITY, meshPicture } from "./draw";
 
@@ -253,7 +253,7 @@ export const verification = async () => {
   const r = await call<Report>("verification");
   if (!r) return;
   const s = verSummary(r);
-  openDialog(() => <Dialog title="Verification" wide help="verification" extra={<button class="btn" onClick={() => { closeDialog(); setReportPages(verificationPages(r)); setBackstage("print"); }}>Print or save as PDF…</button>}>
+  openDialog(() => <Dialog title="Verification" wide help="verification" extra={<button class="btn" onClick={() => { closeDialog(); setReportFlow(verificationFlow(r)); setBackstage("print"); }}>Print or save as PDF…</button>}>
     <div class="vhead"><b class="chip big" classList={{ ok: s.fail === 0 && s.pass > 0, bad: s.fail > 0 }}>{s.fail ? `${s.fail} FAIL` : s.pass ? "ALL PASS" : "NO CHECKS"}</b>
       <div><b>Datum Flow {r.version}: {s.pass} of {r.checks.length} checks pass</b><span class="muted">Run on {r.date}{r.machine ? ` on ${r.machine}` : ""}{r.seconds ? `, ${num(r.seconds, 3)} s in all` : ""}. These are the cases this version was tested on before release; any FAIL blocks a release. Click a row for its source.</span></div></div>
     <Show when={r.checks.length} fallback={<p class="inote">This record has no checks yet.</p>}><VerTable r={r} /></Show>
@@ -261,19 +261,26 @@ export const verification = async () => {
   </Dialog>);
 };
 /** The verification record as report pages (about 14 rows a page). */
-export const verificationPages = (r: Report): (() => JSX.Element)[] => {
-  const s = verSummary(r), per = 9, pages: (() => JSX.Element)[] = [];
-  for (let i = 0; i < Math.max(1, r.checks.length); i += per) {
-    const part = { ...r, checks: r.checks.slice(i, i + per) }, first = i === 0, last = i + per >= r.checks.length;
-    pages.push(() => <div class="rpage">
-      <Show when={first}><h2>Verification of Datum Flow {r.version}</h2><p>{s.pass} of {r.checks.length} checks pass{s.fail ? `; ${s.fail} FAIL` : ""}. Run on {r.date}{r.machine ? ` on ${r.machine}` : ""}.</p></Show>
-      <VerTable r={part} print />
-      <Show when={last && r.not_verified.length}><h4 class="vtier">Not verified in this version</h4><ul class="vnot"><For each={r.not_verified}>{n => <li>{n}</li>}</For></ul></Show>
-    </div>);
-  }
-  return pages;
+/** The values table as rows for a report: a heading row for each group, then its values. */
+const valueRows = (v: ValueRow[]): (() => JSX.Element)[] => [...new Set(v.map(r => r.group))].flatMap(g => [
+  () => <tr class="sgrp"><th colSpan={3}>{g}</th></tr>,
+  ...v.filter(r => r.group === g).map(r => () => <tr><td>{r.name}</td><td class="n">{num(toU(r.kind, r.value), 5)} <i>{ulabel(r.kind)}</i></td><td class="muted">{r.note}</td></tr>),
+]);
+/** The verification record as report pages that lay themselves out (a table per tier). */
+export const verificationFlow = (r: Report): Block[][] => {
+  const s = verSummary(r);
+  const blocks: Block[] = [{ el: () => <><h2>Verification of Datum Flow {r.version}</h2><p>{s.pass} of {r.checks.length} checks pass{s.fail ? `; ${s.fail} FAIL` : ""}. Run on {r.date}{r.machine ? ` on ${r.machine}` : ""}.</p></> }];
+  TIERS.forEach((t, i) => {
+    const list = r.checks.filter(c => c.tier === i + 1);
+    if (!list.length) return;
+    blocks.push({ el: () => <h4 class="vtier">{i + 1} · {t}<small>{TIER_ABOUT[i]}</small><span class="grow" /><b classList={{ ok: list.every(c => c.pass), bad: list.some(c => !c.pass) }}>{list.filter(c => c.pass).length} of {list.length} pass</b></h4> });
+    blocks.push({ table: "tbl vtab", head: () => <tr><th>Case</th><th>Quantity</th><th class="n">Reference</th><th class="n">Datum Flow</th><th class="n">Error</th><th class="n">Allowed</th><th /></tr>,
+      rows: list.map(c => () => <><tr><td>{c.case}</td><td>{c.quantity}</td><td class="n">{num(c.reference, 7)}</td><td class="n">{num(c.result, 7)}</td><td class="n">{pct(c, c.error)}</td><td class="n">{pct(c, c.tolerance)}</td><td><b class="chip" classList={{ ok: c.pass, bad: !c.pass }}>{c.pass ? "PASS" : "FAIL"}</b></td></tr>
+        <tr class="vmore"><td colSpan={7}><span><b>Source:</b> {c.source}{c.confirmed && c.confirmed !== "exact" ? <i class="muted"> · {c.confirmed === "secondary sources" ? "reference value taken from secondary sources, not yet checked against the original paper" : `reference value checked against the ${c.confirmed}`}</i> : ""}</span><Show when={c.note}><span>{c.note}</span></Show></td></tr></>) });
+  });
+  if (r.not_verified.length) blocks.push({ el: () => <><h4 class="vtier">Not verified in this version</h4><ul class="vnot"><For each={r.not_verified}>{n => <li>{n}</li>}</For></ul></> });
+  return [blocks];
 };
-
 // ---------------------------------------------------------------- the PDF report
 const report = async () => {
   const o = out();
@@ -283,8 +290,9 @@ const report = async () => {
   const meshPng = meshPicture(), viewPng = viewPicture(), resPng = s ? chartPicture(residualSeries(s.history, m.physics.heat), { x: "Iteration", y: "Residual (scaled)", log: true }) : null;
   const fd = field(), range = fd ? fieldRange(fd, m.view.map) : null;
   const vs = ver ? verSummary(ver) : null;
-  const pages: (() => JSX.Element)[] = [
-    () => <div class="rpage"><h2>1 · Inputs</h2>
+  const sections: Block[][] = [
+    [
+    { el: () => <><h2>1 · Inputs</h2>
       <table class="rtab"><tbody>
         <tr><th>Fluid</th><td>{f.name} at {fmt("temp", f.at)}</td></tr>
         <tr><th>Density</th><td>{fmt("density", f.rho, 5)}</td></tr><tr><th>Viscosity</th><td>{fmt("viscosity", f.mu, 5)} (kinematic {fmt("kinvisc", f.mu / f.rho, 4)})</td></tr>
@@ -292,41 +300,46 @@ const report = async () => {
         <tr><th>Source</th><td>{f.source}</td></tr>
         <tr><th>Physics</th><td>Steady laminar flow in 2D{m.physics.heat ? ", with heat" : ""}{m.physics.buoyancy ? ` and buoyancy (gravity ${fmt("accel", m.physics.gravity[0], 4)}, ${fmt("accel", m.physics.gravity[1], 4)}; reference ${fmt("temp", m.physics.t_ref)})` : ""}; depth {fmt("len", m.physics.depth)}</td></tr>
         <tr><th>Numbers</th><td>Reynolds {n.speed > 0 ? num(n.re, 4) : "—"}{m.physics.buoyancy ? ` · Rayleigh ${num(n.ra, 4)}` : ""} · Prandtl {num(n.pr, 4)} (speed {fmt("speed", n.speed)}, length {fmt("len", n.length)}{n.dt ? `, temperature difference ${fmt("dtemp", n.dt)}` : ""})</td></tr>
-      </tbody></table>
-      <h3>Boundaries</h3>
-      <table class="rtab cols"><thead><tr><th>Name</th><th>Kind</th><th>Flow</th><th>Heat</th><th>Edges</th></tr></thead><tbody><For each={m.boundaries}>{b => <tr><td>{b.name}</td><td>{KIND_NAME[b.kind.type]}</td>
+      </tbody></table></> },
+      { el: () => <h3>Boundaries</h3> },
+      { table: "rtab cols", head: () => <tr><th>Name</th><th>Kind</th><th>Flow</th><th>Heat</th><th>Edges</th></tr>, rows: m.boundaries.map(b => () => <tr><td>{b.name}</td><td>{KIND_NAME[b.kind.type]}</td>
         <td>{b.kind.type === "inlet" ? `${fmt("speed", b.kind.speed)} mean, ${b.kind.profile === "parabolic" ? "fully developed" : "uniform"}` : b.kind.type === "outlet" ? `pressure ${fmt("pressure", b.kind.pressure)}` : b.kind.type === "wall" ? (b.kind.u[0] || b.kind.u[1] ? `moving at ${fmt("speed", b.kind.u[0])}, ${fmt("speed", b.kind.u[1])}` : "fixed, no slip") : "no flow across"}</td>
-        <td>{!m.physics.heat ? "—" : b.heat.type === "temperature" ? fmt("temp", b.heat.t) : b.heat.type === "flux" ? fmt("flux", b.heat.q) : "insulated"}</td><td>{b.edges.map(e => o.edges.find(x => x.shape === e.shape && x.edge === e.edge)?.name ?? "").join(", ")}</td></tr>}</For></tbody></table>
-      <Show when={m.notes}><p class="rnote">{m.notes}</p></Show></div>,
-    () => <div class="rpage"><h2>2 · Mesh</h2>
+        <td>{!m.physics.heat ? "—" : b.heat.type === "temperature" ? fmt("temp", b.heat.t) : b.heat.type === "flux" ? fmt("flux", b.heat.q) : "insulated"}</td><td>{b.edges.map(e => o.edges.find(x => x.shape === e.shape && x.edge === e.edge)?.name ?? "").join(", ")}</td></tr>) },
+      { el: () => <Show when={m.notes}><p class="rnote">{m.notes}</p></Show> },
+    ],
+
+    [{ el: () => <><h2>2 · Mesh</h2>
       <Show when={q} fallback={<p>No mesh has been generated.</p>}>
         <table class="rtab"><tbody><tr><th>Elements</th><td>{q!.elements.toLocaleString()} six-node triangles, {q!.nodes.toLocaleString()} nodes, {q!.unknowns.toLocaleString()} flow unknowns</td></tr>
           <tr><th>Size</th><td>{m.mesh.size ? fmt("len", m.mesh.size) : `automatic (${fmt("len", mesh()!.size, 3)})`}; edges {fmt("len", q!.edges[0], 3)} to {fmt("len", q!.edges[2], 3)}; walls × {num(m.mesh.wall, 2)}, corners × {num(m.mesh.corner, 2)}, wakes × {num(m.mesh.wake, 2)}; {m.mesh.refine.length} local size{m.mesh.refine.length === 1 ? "" : "s"}</td></tr>
           <tr><th>Quality</th><td>Smallest angle {num(q!.min_angle, 3)}°; {num(100 * q!.good, 3)}% of elements have every angle over 30°; neighbouring elements differ in size by at most {num(q!.max_ratio, 3)}</td></tr></tbody></table>
         <Show when={meshPng}><div class="ppic"><img src={meshPng!} alt="" /></div></Show>
-      </Show></div>,
-    () => <div class="rpage"><h2>3 · Convergence</h2>
+      </Show></> }],
+    [{ el: () => <><h2>3 · Convergence</h2>
       <Show when={s} fallback={<p>The model has not been solved.</p>}>
         <table class="rtab"><tbody><tr><th>Outcome</th><td><b>{s!.converged ? "Converged" : s!.stopped ? "Stopped before it converged" : "Did not converge"}</b>. {s!.message}</td></tr>
           <tr><th>Solve</th><td>{s!.history.length - 1} iterations{s!.stats.steps ? ` in ${s!.stats.steps} continuation steps` : ""}; {s!.stats.unknowns.toLocaleString()} unknowns; {num(s!.stats.seconds, 3)} s; {s!.stats.linear_solver}; tolerance {num(m.solver.tol, 2)}</td></tr>
           <tr><th>Last residuals</th><td>momentum {num(s!.history[s!.history.length - 1].momentum, 2)}, continuity {num(s!.history[s!.history.length - 1].continuity, 2)}{m.physics.heat ? `, energy ${num(s!.history[s!.history.length - 1].energy, 2)}` : ""} (scaled by their largest value)</td></tr></tbody></table>
         <div class="ppic"><img src={resPng!} alt="" /></div>
-      </Show></div>,
-    () => <div class="rpage"><h2>4 · Results</h2>
+      </Show></> }],
+    [{ el: () => <><h2>4 · Results</h2>
       <Show when={o.has_results && viewPng} fallback={<p>There are no results.</p>}>
         <Show when={fd && range}><p>{fd!.name} from {fmt(fd!.kind, range![0], 4)} to {fmt(fd!.kind, range![1], 4)} ({m.view.map} colours){m.view.streamlines ? ", with streamlines" : ""}{m.view.arrows ? " and velocity arrows" : ""}.</p></Show>
         <div class="ppic"><img src={viewPng!} alt="" /></div>
-      </Show></div>,
-    ...(vals ? Array.from({ length: Math.ceil(vals.length / 22) }, (_, i) => () => <div class="rpage"><h2>5 · Values{i ? " (continued)" : ""}</h2><ValuesTable rows={vals.slice(22 * i, 22 * i + 22)} /></div>) : []),
-    () => <div class="rpage"><h2>{vals ? 6 : 5} · Verification of this version</h2>
+      </Show></> }],
+    ...(vals ? [[
+      { el: () => <h2>5 · Values</h2> },
+      { table: "tbl svals", head: () => <tr><th>Value</th><th class="n">Number</th><th>Note</th></tr>, rows: valueRows(vals) },
+    ] as Block[]] : []),
+    [{ el: () => <><h2>{vals ? 6 : 5} · Verification of this version</h2>
       <Show when={ver && vs} fallback={<p>The verification record could not be read.</p>}>
         <p>These results were computed with Datum Flow {ver!.version}. Before release that version was tested on cases with known answers: <b>{vs!.pass} of {ver!.checks.length} checks pass{vs!.fail ? `, ${vs!.fail} FAIL` : ""}</b> (run on {ver!.date}).</p>
         <table class="rtab cols"><thead><tr><th>Tier</th><th>Checks</th><th>Pass</th></tr></thead><tbody><For each={TIERS}>{(t, i) => { const l = ver!.checks.filter(c => c.tier === i() + 1); return <Show when={l.length}><tr><td>{t}</td><td>{l.length}</td><td>{l.filter(c => c.pass).length}</td></tr></Show>; }}</For></tbody></table>
         <p>Full report: Help › Verification.</p>
         <p class="rnote">A verified solver does not make every model right: the answer also depends on the mesh, the boundaries chosen and whether the real flow is steady and laminar. Compare with a finer mesh before relying on a number.</p>
-      </Show></div>,
+      </Show></> }],
   ];
-  setReportPages(pages);
+  setReportFlow(sections);
   setBackstage("print");
   toast("The report's pages follow the first page in the preview. Print, or Save as PDF.", true);
 };

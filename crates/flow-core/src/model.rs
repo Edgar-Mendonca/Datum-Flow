@@ -28,6 +28,49 @@ pub enum Geom {
     Circle { c: [f64; 2], r: f64 },
 }
 
+/// Which side of the line a→b a point is on (positive: left).
+fn side(a: [f64; 2], b: [f64; 2], p: [f64; 2]) -> f64 {
+    (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+}
+
+/// The point halfway along the arc of a bulged side.
+pub fn arc_mid(p: [f64; 2], q: [f64; 2], bulge: f64) -> [f64; 2] {
+    if bulge == 0.0 {
+        return [(p[0] + q[0]) / 2.0, (p[1] + q[1]) / 2.0];
+    }
+    let (c, r, a0, th) = arc(p, q, bulge);
+    [c[0] + r * (a0 + th / 2.0).cos(), c[1] + r * (a0 + th / 2.0).sin()]
+}
+
+/// The bulge of the arc from p to q that passes through t; 0 when t is on the chord's line.
+/// None when no sensible arc exists (t at an end, or the arc would be almost a full circle).
+pub fn bulge_through(p: [f64; 2], q: [f64; 2], t: [f64; 2]) -> Option<f64> {
+    let chord = (q[0] - p[0]).hypot(q[1] - p[1]);
+    if chord.is_nan() || chord <= 0.0 || [p, q].iter().any(|e| (t[0] - e[0]).hypot(t[1] - e[1]) < 1e-9 * chord) {
+        return None;
+    }
+    let d = 2.0 * side(p, q, t);
+    if d.abs() < 1e-12 * chord * chord {
+        return Some(0.0);
+    }
+    // The circle through the three points.
+    let (a2, b2, c2) = (p[0] * p[0] + p[1] * p[1], q[0] * q[0] + q[1] * q[1], t[0] * t[0] + t[1] * t[1]);
+    let det = 2.0 * (p[0] * (q[1] - t[1]) + q[0] * (t[1] - p[1]) + t[0] * (p[1] - q[1]));
+    let c = [(a2 * (q[1] - t[1]) + b2 * (t[1] - p[1]) + c2 * (p[1] - q[1])) / det, (a2 * (t[0] - q[0]) + b2 * (p[0] - t[0]) + c2 * (q[0] - p[0])) / det];
+    let ang = |x: [f64; 2]| (x[1] - c[1]).atan2(x[0] - c[0]);
+    let tau = std::f64::consts::TAU;
+    let s = (ang(q) - ang(p)).rem_euclid(tau);
+    let st = (ang(t) - ang(p)).rem_euclid(tau);
+    // Counter-clockwise from p to q if t lies on that way round, else clockwise.
+    let sweep = if st < s { s } else { s - tau };
+    if sweep.abs() > 350f64.to_radians() {
+        return None;
+    }
+    // The sign that puts the arc on t's side of the chord (checked, not assumed).
+    let b = (sweep.abs() / 4.0).tan();
+    Some(if side(p, q, arc_mid(p, q, b)).signum() == side(p, q, t).signum() { b } else { -b })
+}
+
 /// The arc of a bulged side p→q: centre, radius, start angle and swept angle (signed).
 pub fn arc(p: [f64; 2], q: [f64; 2], bulge: f64) -> ([f64; 2], f64, f64, f64) {
     let th = 4.0 * bulge.atan();
@@ -155,15 +198,25 @@ impl Geom {
                     if (q[0] - p[0]).hypot(q[1] - p[1]) <= 1e-9 * size { return Some(format!("side {} has zero length (two corners at the same place)", i + 1)); }
                 }
                 if self.area().abs() <= 1e-12 * size * size { return Some("the outline encloses no area".into()); }
-                // Straight sides must not cross each other (arcs are checked by the mesher).
-                if n <= 2000 && bulge.iter().all(|b| *b == 0.0) {
-                    let cross = |a: [f64; 2], b: [f64; 2], c: [f64; 2]| (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
-                    for i in 0..n {
-                        for j in i + 2..n {
-                            if i == 0 && j == n - 1 { continue; }
-                            let (a, b2, c, d) = (pts[i], pts[(i + 1) % n], pts[j], pts[(j + 1) % n]);
-                            let (d1, d2, d3, d4) = (cross(c, d, a), cross(c, d, b2), cross(a, b2, c), cross(a, b2, d));
-                            if d1 * d2 < 0.0 && d3 * d4 < 0.0 { return Some(format!("sides {} and {} cross each other", i + 1, j + 1)); }
+                // Sides must not cross each other, arcs included (split into short straight pieces).
+                if n <= 2000 {
+                    let (o, starts) = self.outline(size / 200.0, 64);
+                    if o.len() <= 6000 {
+                        let side_of = |k: usize| starts.iter().rposition(|s0| *s0 <= k).unwrap_or(0);
+                        let m = o.len();
+                        let cross = |a: [f64; 2], b: [f64; 2], c: [f64; 2]| (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+                        for i in 0..m {
+                            for j in i + 2..m {
+                                if i == 0 && j == m - 1 { continue; }
+                                let (a, b2, c, d) = (o[i], o[(i + 1) % m], o[j], o[(j + 1) % m]);
+                                // Quick reject on the pieces' boxes.
+                                if a[0].max(b2[0]) < c[0].min(d[0]) || c[0].max(d[0]) < a[0].min(b2[0]) || a[1].max(b2[1]) < c[1].min(d[1]) || c[1].max(d[1]) < a[1].min(b2[1]) { continue; }
+                                let (d1, d2, d3, d4) = (cross(c, d, a), cross(c, d, b2), cross(a, b2, c), cross(a, b2, d));
+                                if d1 * d2 < 0.0 && d3 * d4 < 0.0 {
+                                    let (si, sj) = (side_of(i), side_of(j));
+                                    return Some(if si == sj { format!("side {} crosses itself", si + 1) } else { format!("sides {} and {} cross each other", si + 1, sj + 1) });
+                                }
+                            }
                         }
                     }
                 }
