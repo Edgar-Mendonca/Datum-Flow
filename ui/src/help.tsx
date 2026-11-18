@@ -13,6 +13,8 @@ export const HELP: Record<string, Topic> = {
     how: ["Click a view to open it. The first five show the 2D view with their ribbon tab; the others are pages.", "Setup opens a step-by-step panel on the right, in place of the properties; it opens by itself for a new blank model."] },
   setup: { t: "Setup", what: "A step-by-step guide through a new model: name and units, geometry, fluid, heat, boundaries, mesh, then check and solve. Each step says what it is for and ticks itself when it is done.",
     how: ["Back and Next move between the steps, or click a step's number.", "Skip any step: everything can also be set in the ribbon and on the right.", "Close it with ×; reopen it from Setup in the sidebar."] },
+  range: { t: "Colour range", what: "Which values the colours run between. Automatic follows the field from its lowest to its highest value; a range set by hand stays the same as the model changes, so several models or meshes can be compared in the same colours.",
+    how: ["Click the legend, or Results › Range in the properties.", "Values beyond the range take the end colours; the legend marks them with ≥ and ≤.", "Automatic sets it back."] },
   plots: { t: "Plots", what: "The values at every probe in a table, and a chart for every line drawn across the flow, with the quantity to plot and a CSV of each." },
   steps: { t: "The steps", what: "A simulation is built left to right along the tabs: draw the geometry, choose the fluid and set the boundaries, mesh, solve, then read the results and check them.",
     how: ["The sidebar on the left opens each step as a view, and Setup walks through them in order; the model tree beside it lists the parts of the model.", "Check › Checks says what is still missing before a solve."] },

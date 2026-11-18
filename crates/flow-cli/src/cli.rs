@@ -8,8 +8,9 @@ use std::fmt::Write;
 
 pub const USAGE: &str = "Datum Flow command line
 
-  flow-cli solve <model.dflow> [--vtu <file>] [--probes <file.csv>] [--lines <prefix>] [--json]
-        Mesh, check and solve a model; print the residuals and the values.
+  flow-cli solve <model.dflow> [--save <file.dflow>] [--vtu <file>] [--probes <file.csv>] [--lines <prefix>] [--json]
+        Mesh, check and solve a model; print the residuals and the values. A file that keeps
+        results starts from them. --save writes the model with its results, to open solved.
         --vtu writes the fields for a viewer such as ParaView, --probes the probes as CSV,
         --lines one CSV per plot line (<prefix>-1.csv, …), --json prints the values as JSON.
   flow-cli check <model.dflow>      Mesh the model and list what the setup check finds.
@@ -21,14 +22,14 @@ pub const USAGE: &str = "Datum Flow command line
 
 Exit codes: 0 done, 1 not converged or a check failed, 2 the command or the file could not be read.";
 
-fn load(path: &str) -> Result<(flow_core::Model, String), String> {
+fn load(path: &str) -> Result<(flow_core::Model, String, Option<serde_json::Value>), String> {
     let meta = std::fs::metadata(path).map_err(|e| format!("Could not open {path}: {e}"))?;
     if meta.len() > file::MAX_BYTES as u64 {
         return Err("This file is too large to be a Datum Flow model.".into());
     }
     let text = std::fs::read_to_string(path).map_err(|e| format!("Could not open {path}: {e}"))?;
-    let (m, notes) = file::read(&text)?;
-    Ok((m, notes.iter().map(|n| format!("note: {n}\n")).collect()))
+    let (m, notes, results) = file::read_all(&text)?;
+    Ok((m, notes.iter().map(|n| format!("note: {n}\n")).collect(), results))
 }
 
 fn write(path: &str, text: &str) -> Result<(), String> {
@@ -75,10 +76,17 @@ fn go(args: &[String]) -> Result<(i32, String), String> {
             Ok((if r.failed() == 0 && !r.checks.is_empty() { 0 } else { 1 }, o))
         }
         "mesh" | "check" | "solve" => {
-            let (m, notes) = load(&need_file()?)?;
+            let (m, notes, results) = load(&need_file()?)?;
             o.push_str(&notes);
             let mut e = Engine::default();
-            let view = e.mesh(&m, 1)?;
+            // Results kept in the file: the solve starts from them.
+            if let Some(r) = results.filter(|_| cmd == "solve") {
+                match e.from_file(&m, &r, 1) {
+                    Ok(()) => o.push_str("note: starting from the results kept in the file.\n"),
+                    Err(err) => { let _ = writeln!(o, "note: {err}"); }
+                }
+            }
+            let view = if e.has_mesh() { e.mesh_view().ok_or("There is no mesh.")? } else { e.mesh(&m, 1)? };
             let q = &view.quality;
             let _ = writeln!(o, "Mesh: {} elements, {} nodes, {} unknowns; smallest angle {:.1}°; largest size ratio between neighbours {:.2}; element size {}.", q.elements, q.nodes, q.unknowns, q.min_angle, q.max_ratio, show(m.units, "len", view.size, 3));
             if cmd == "mesh" {
@@ -121,6 +129,10 @@ fn go(args: &[String]) -> Result<(i32, String), String> {
                 write(&path, &e.vtu()?)?;
                 let _ = writeln!(o, "Wrote {path}");
             }
+            if let Some(path) = opt("--save") {
+                write(&path, &file::write_with(&m, e.to_file(&m, 1).as_ref()))?;
+                let _ = writeln!(o, "Wrote {path} (the model with its results)");
+            }
             if let Some(path) = opt("--probes") {
                 write(&path, &e.probes_csv(&m)?)?;
                 let _ = writeln!(o, "Wrote {path}");
@@ -154,6 +166,12 @@ mod tests {
         let (code, out) = sh(&["solve", &p("channel.dflow"), "--vtu", &p("out.vtu"), "--lines", &p("line"), "--probes", &p("probes.csv")]);
         assert!(code == 0 && out.contains("ok: Ready to solve.") && out.contains("Converged in") && out.contains("Pressure drop") && out.contains("0.6012 Pa") && out.contains("mass conservation"), "{out}");
         assert!(std::fs::read_to_string(p("out.vtu")).unwrap().contains("UnstructuredGrid") && std::fs::read_to_string(p("line-1.csv")).unwrap().lines().count() == 52 && std::path::Path::new(&p("probes.csv")).exists());
+        // --save keeps the results; solving that file again starts from them.
+        assert_eq!(sh(&["solve", &p("channel.dflow"), "--save", &p("solved.dflow")]).0, 0);
+        let (_, _, kept) = file::read_all(&std::fs::read_to_string(p("solved.dflow")).unwrap()).unwrap();
+        assert!(kept.is_some());
+        let (code, out) = sh(&["solve", &p("solved.dflow")]);
+        assert!(code == 0 && out.contains("starting from the results kept in the file") && out.contains("Converged in 0 iterations"), "{out}");
         let (code, out) = sh(&["solve", &p("channel.dflow"), "--json"]);
         assert!(code == 0 && out.contains("\"converged\":true"));
         assert!(sh(&["mesh", &p("channel.dflow")]).1.contains("Angles:"));

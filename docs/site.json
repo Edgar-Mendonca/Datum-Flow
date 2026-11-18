@@ -30,6 +30,7 @@
     "Automatic meshing with refinement at walls, corners and wakes, and a mesh quality report",
     "A setup check that refuses to solve and says why: no outlet, an edge with no boundary, a flow that is probably turbulent",
     "Contours, arrows and streamlines; probes and line plots; flow rate, pressure drop, drag and lift, heat flow and Nusselt number",
+    "Models open solved: the mesh and results are kept in the file, exactly",
     "Residuals and monitors plotted while it solves; stop and resume; plain advice when it does not converge",
     "PDF report, VTU for free viewers, CSV, PNG; DXF outlines in; a command-line tool",
     "A verification report in every release: exact solutions, order of accuracy, published benchmarks"
@@ -42,23 +43,14 @@
   ],
   "roadmap": [
     {
-      "v": "0.1.4",
-      "title": "Results kept with the model",
-      "when": "Next",
-      "items": [
-        "Results saved in the .dflow file, so a model opens solved",
-        "A manual range for the colour legend",
-        "The cylinder benchmark's reference values checked against its original paper"
-      ]
-    },
-    {
       "v": "0.1.5",
       "title": "Drawing and the report",
-      "when": "Soon",
+      "when": "Next",
       "items": [
         "A drawn-arc tool and rounded corners",
         "Contours shaded with the elements' true curved values",
-        "Long tables flow over pages in the PDF report"
+        "Long tables flow over pages in the PDF report",
+        "Streamlines thin out where the region is drawn small, so the colours stay readable"
       ]
     },
     {

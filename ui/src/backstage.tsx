@@ -127,6 +127,7 @@ const OptionsPage = () => {
       </Sec>
       <Sec t="Start-up and saving" about="What happens when Datum Flow starts, and how your work is protected.">
         <Opt l="When Datum Flow starts" hint="Open the File page, or reopen the model you used last."><Pick value={o().openLast ? "last" : "home"} set={v => put("openLast", v === "last")} options={[["home", "Show the File page"], ["last", "Reopen the last model"]]} /></Opt>
+        <Opt l="Keep results in the file" hint="Save the mesh and the solution with the model, so it opens solved. The file grows (about 1 MB for 25 000 unknowns)."><Pick value={o().keepResults ? "yes" : "no"} set={v => put("keepResults", v === "yes")} options={[["yes", "Yes: open models solved"], ["no", "No: keep files small"]]} /></Opt>
         <Opt l="Recovery copy every" hint="A copy is kept while you work, so a crash or power cut loses little. 0 turns it off."><span class="inline"><input type="number" min="0" style={{ width: "70px" }} value={o().autosave} onChange={e => put("autosave", Math.max(0, Math.round(+e.currentTarget.value || 0)))} /> minutes</span></Opt>
       </Sec>
       <Sec t="New models" about="Defaults given to every new model. Each model keeps its own settings afterwards.">

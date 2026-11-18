@@ -180,9 +180,9 @@ export const initSim = () => {
     if (!hasResults) { clearResults(); if (!untrack(running)) setSummary(null); }
     if (!hasMesh && !untrack(running)) { setRows([]); setMonValues([]); }
     setPlacing(null);
-    // A model that already has them (the window was reloaded): fetch what is there.
-    if (hasMesh && !untrack(mesh)) call<MeshView | null>("mesh_view").then(v => v && setMesh(v));
-    if (hasResults && !untrack(summary)) call<Summary | null>("summary").then(s => { if (s) { setSummary(s); setRows(s.history); setMonValues(s.monitors); setMonNames(s.monitor_names); } });
+    // A model that already has them (opened with its results, or the window was reloaded): fetch what is there.
+    if (hasMesh && !untrack(running)) call<MeshView | null>("mesh_view").then(v => v && setMesh(v));
+    if (hasResults && !untrack(running)) call<Summary | null>("summary").then(s => { if (s) { setSummary(s); setRows(s.history); setMonValues(s.monitors); setMonNames(s.monitor_names); } });
     redraw();
   }));
   // Checks on show follow the model: every edit runs them again; another model starts clean.

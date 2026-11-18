@@ -611,7 +611,7 @@ dependencies = [
 
 [[package]]
 name = "datum-flow"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "chrono",
  "flow-cli",
@@ -1030,7 +1030,7 @@ dependencies = [
 
 [[package]]
 name = "flow-cli"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "flow-core",
  "flow-mesh",
@@ -1043,7 +1043,7 @@ dependencies = [
 
 [[package]]
 name = "flow-core"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -1051,7 +1051,7 @@ dependencies = [
 
 [[package]]
 name = "flow-mesh"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "flow-core",
  "serde",
@@ -1061,7 +1061,7 @@ dependencies = [
 
 [[package]]
 name = "flow-post"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "flow-core",
  "flow-mesh",
@@ -1072,7 +1072,7 @@ dependencies = [
 
 [[package]]
 name = "flow-solve"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "faer",
  "flow-core",
@@ -1083,7 +1083,7 @@ dependencies = [
 
 [[package]]
 name = "flow-verify"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "flow-core",
  "flow-mesh",

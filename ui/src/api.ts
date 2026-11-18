@@ -27,7 +27,7 @@ export type MonitorKind =
 export interface Monitor { name: string; kind: MonitorKind }
 export interface Probe { name: string; x: number; y: number }
 export interface Line { name: string; a: Pt; b: Pt; n: number }
-export interface View { field: string; map: string; arrows: boolean; streamlines: boolean; mesh: boolean; bands: number }
+export interface View { field: string; map: string; arrows: boolean; streamlines: boolean; mesh: boolean; bands: number; ranges?: Record<string, [number, number]> }
 export interface Model {
   name: string; notes: string; units: "SI" | "US"; grid: number; shapes: Shape[]; fluid: Fluid; physics: Physics; boundaries: Boundary[];
   mesh: MeshSettings; solver: SolverSettings; monitors: Monitor[]; probes: Probe[]; lines: Line[]; view: View;
@@ -50,7 +50,7 @@ export type Op =
   | { op: "set_fluid"; fluid: Fluid } | { op: "set_physics"; physics: Physics } | { op: "set_boundary"; boundary: Boundary } | { op: "remove_boundary"; id: number } | { op: "wall_the_rest" }
   | { op: "set_mesh"; mesh: MeshSettings } | { op: "set_solver"; solver: SolverSettings } | { op: "set_monitors"; monitors: Monitor[] } | { op: "set_probes"; probes: Probe[] }
   | { op: "set_lines"; lines: Line[] } | { op: "set_view"; view: View } | { op: "replace"; model: Model };
-export interface Options { autosave: number; beta: boolean; theme: string; openLast: boolean; units: "SI" | "US"; snap: boolean; grid: boolean; map: string; paper: string; landscape: boolean; company: string }
+export interface Options { autosave: number; beta: boolean; theme: string; openLast: boolean; units: "SI" | "US"; snap: boolean; grid: boolean; map: string; paper: string; landscape: boolean; company: string; keepResults: boolean }
 
 /** A number typed by a person: "−" and "," are understood ("1,5" is 1.5, "1,200" is 1200); empty
  * or not a number gives null. */

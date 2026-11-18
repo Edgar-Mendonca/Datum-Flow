@@ -39,11 +39,13 @@ struct Options {
     paper: String,
     landscape: bool,
     company: String,
+    /// Keep the mesh and results in the .dflow file, so a model opens solved.
+    keep_results: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Self { autosave: 5, beta: false, theme: "auto".into(), open_last: false, units: "SI".into(), snap: true, grid: true, map: "viridis".into(), paper: "A4".into(), landscape: true, company: String::new() }
+        Self { autosave: 5, beta: false, theme: "auto".into(), open_last: false, units: "SI".into(), snap: true, grid: true, map: "viridis".into(), paper: "A4".into(), landscape: true, company: String::new(), keep_results: true }
     }
 }
 
@@ -378,8 +380,17 @@ async fn open(app: AppHandle, st: State<'_, St>, path: Option<String>) -> R<Opti
     let text = read_limited(&path)?;
     let mut a = st.lock();
     guard(|| {
-        let (m, notes) = file::read(&text)?;
-        a.load(m, Some(path.clone()), notes);
+        let (m, mut notes, results) = file::read_all(&text)?;
+        a.load(m, Some(path.clone()), vec![]);
+        // Results kept in the file come back when they still belong to the model.
+        if let Some(r) = results {
+            let rev = a.doc.revision;
+            let m = a.doc.m.clone();
+            if let Err(e) = a.engine.from_file(&m, &r, rev) {
+                notes.push(e);
+            }
+        }
+        a.notes = notes;
         Ok(())
     })?;
     remember(&app, &path);
@@ -427,7 +438,8 @@ async fn save(app: AppHandle, st: State<'_, St>, path: Option<String>, as_new: O
         return Err("Datum Flow models are saved as .dflow files.".into());
     }
     let mut a = st.lock();
-    write_safely(&path, file::write(&a.doc.m).as_bytes()).map_err(|e| format!("Could not save {}: {e}", path.display()))?;
+    let results = if a.opts.keep_results { a.engine.to_file(&a.doc.m, a.doc.revision) } else { None };
+    write_safely(&path, file::write_with(&a.doc.m, results.as_ref()).as_bytes()).map_err(|e| format!("Could not save {}: {e}", path.display()))?;
     a.saved = Some(a.doc.revision);
     a.path = Some(path.clone());
     remember(&app, &path);

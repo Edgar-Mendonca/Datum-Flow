@@ -5,14 +5,15 @@ import { For, Show, JSX, createSignal, createEffect, createMemo, onMount, onClea
 import { Chart, LineController, LineElement, PointElement, LinearScale, LogarithmicScale, Tooltip, Legend, Filler } from "chart.js";
 import { num } from "./api";
 import { out, M, call, toast, openDialog, closeDialog, setSel, setTab, setBackstage, backstage, toU, ulabel, fmt, themeTick, KIND_NAME } from "./store";
-import { Dialog, Icon } from "./ui";
+import { Dialog, Icon, Num } from "./ui";
+import { act } from "./store";
 import { Help } from "./help";
 import { wire } from "./cmds";
 import { fit, viewPicture, cursor } from "./canvas";
 import { setPanel } from "./bottom";
 import { setReportPages } from "./print";
 import { mesh, showQuality, setShowQuality, issues, runChecks, running, rows, monValues, monNames, summary, field, placing, lineStart, hoverSample, hoverAt, ui, exportProbes, exportLine, stop, Issue, Sample, ValueRow, Report, Check, Summary, ResRow } from "./sim";
-import { lut, fieldRange, QUALITY, meshPicture } from "./draw";
+import { lut, fieldRange, autoRange, QUALITY, meshPicture } from "./draw";
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, LogarithmicScale, Tooltip, Legend, Filler);
 // For the UI tests: how many points each series of a chart holds.
@@ -136,8 +137,33 @@ const Legend2 = () => {
     for (let y = 0; y < cv.height; y++) { const i = 3 * Math.round(255 * (1 - y / (cv.height - 1))); ctx.fillStyle = `rgb(${t[i]},${t[i + 1]},${t[i + 2]})`; ctx.fillRect(0, y, cv.width, 1); }
   });
   const ticks = () => { const [lo, hi] = range(); return [1, 0.75, 0.5, 0.25, 0].map(s => toU(field()!.kind, lo + (hi - lo) * s)); };
-  return <div class="sleg"><b>{field()!.name}<small>{ulabel(field()!.kind)}</small></b><div><canvas ref={cv} width="14" height="150" /><ul><For each={ticks()}>{t => <li>{num(t, 4)}</li>}</For></ul></div></div>;
+  const fixed = () => !!M().view.ranges?.[field()!.id];
+  // Values beyond a range set by hand: the end ticks say so.
+  const over = () => fixed() && field()!.max > range()[1], under = () => fixed() && field()!.min < range()[0];
+  return <button class="sleg" title="Set the colour range (Results › Range)" onClick={askRange}><b>{field()!.name}<small>{ulabel(field()!.kind)}</small>{fixed() && <i class="sfixed">fixed</i>}</b>
+    <div><canvas ref={cv} width="14" height="150" /><ul><For each={ticks()}>{(t, i) => <li>{i() === 0 && over() ? "≥ " : i() === 4 && under() ? "≤ " : ""}{num(t, 4)}</li>}</For></ul></div></button>;
 };
+/** Results › Range: the colours run from a low to a high value set by hand (kept with the model,
+ *  per field); values beyond them take the end colours. Automatic again: the field's own range. */
+export const askRange = () => {
+  const f = field();
+  if (!f) return toast("There are no results yet: solve the model first (Solve › Solve).");
+  const auto = autoRange(f, M().view.map);
+  const now = fieldRange(f, M().view.map);
+  const [lo, setLo] = createSignal(now[0]), [hi, setHi] = createSignal(now[1]);
+  const save = (r: [number, number] | null) => {
+    const ranges = { ...(M().view.ranges ?? {}) };
+    if (r) ranges[f.id] = r; else delete ranges[f.id];
+    act({ op: "set_view", view: { ...M().view, ranges } });
+  };
+  openDialog(() => <Dialog title={`Colour range: ${f.name}`} help="range" okText="Set" ok={() => { if (!(hi() > lo())) { toast("The high value must be above the low one."); return false; } save([lo(), hi()]); }}
+    extra={<button class="btn" onClick={() => { save(null); closeDialog(); }}>Automatic</button>}>
+    <p class="muted">The colours run from the low value to the high one; values beyond them take the end colours. Use the same range on several models to compare them. The field runs from {fmt(f.kind, f.min, 4)} to {fmt(f.kind, f.max, 4)}{M().view.ranges?.[f.id] ? "" : " (automatic now)"}.</p>
+    <div class="form"><label>Low</label><Num kind={f.kind} value={lo()} set={setLo} /><label>High</label><Num kind={f.kind} value={hi()} set={setHi} /></div>
+    <p class="muted">Automatic: {fmt(f.kind, auto[0], 4)} to {fmt(f.kind, auto[1], 4)}.</p>
+  </Dialog>);
+};
+
 export const SimOverlay = () => (
   <div class="sover">
     <Show when={out()?.has_results && field() && !showQuality()}><Legend2 /></Show>

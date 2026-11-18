@@ -7,7 +7,7 @@
 | --- | --- |
 | **Product** | Datum Flow: fluid-flow simulation (CFD) on the desktop. Draw or load a geometry, choose a fluid, set inlets, outlets and walls, mesh, solve, and see velocity, pressure and temperature, with pressure drop, flow rate, drag and lift, heat transfer. Every release proves its answers in a built-in verification report |
 | **Tagline** | "Fluid flow simulation: draw it, set the flow, see and check the results." |
-| **Current version** | 0.1.3 (2026-11-18) |
+| **Current version** | 0.1.4 (2026-11-18) |
 | **Repo** | `Edgar-Mendonca/Datum-Flow` · branch `claude/magical-galileo-k8g6qh` (the first branch pushed) |
 | **Stack** | Rust engine (`crates/`, own solver), Tauri 2, SolidJS + strict TypeScript; CPU only (threads), no GPU in 0.x |
 | **Identifier** | `com.edgarmendonca.datumflow` · files `.dflow` (JSON, `format` 1) · installer `DatumFlow-x.y.z-setup.exe` + `SHA256SUMS.txt` · publisher "Datum" |
@@ -71,6 +71,7 @@ flow-core ─▶ flow-mesh ─▶ flow-solve ─▶ flow-post ─▶ flow-verify
 | `crates/flow-post/src/locate.rs` | Finding the element that holds a point |
 | `crates/flow-post/src/values.rs` | Probes, line plots, arrows; flow rate, pressure drop, forces, heat flow, Nusselt number, mass and heat balance |
 | `crates/flow-post/src/export.rs` | VTU and CSV |
+| `crates/flow-core/src/pack.rs` | Exact, compact storage of long arrays in the file (base64), and the fingerprint that ties stored results to their model |
 | `crates/flow-core/src/dxf.rs` | Outlines from a DXF drawing: lines, arcs, circles, polylines |
 | `crates/flow-verify/src/cases.rs` | The verification cases: exact solutions, manufactured solution, Kovasznay, cylinder, cavity, heated cavity, step |
 | `crates/flow-verify/src/gci.rs` | The Grid Convergence Index (Celik et al. 2008) |
@@ -148,6 +149,10 @@ Bump the version in the root `Cargo.toml`, add the CHANGELOG section, regenerate
 | 0.1.3 | **The step's validation band is 10%, a judgement stated in the report** | The paper states no uncertainty. The band was set after the first comparison (6.3% at Re 100, 7.0% at Re 389); Armaly's own 2D computation gives about 8.05 at Re 389, beside 8.00 here, so the gap there is the experiment's three-dimensionality, as the authors say |
 | 0.1.3 | **The cylinder (Schäfer & Turek 1996) stays "secondary sources"** | The file supplied held pages 547–548 only (the introduction); the definitions and results are on pages 549–566 |
 | 0.1.3 | **The OpenAI "Finite Time Blowup for Navier–Stokes" paper (dated September 2026, supplied by the user) changes nothing in Flow** | It is a pure existence proof for 3D flow with an engineered force; it gives no computable flow or method, and 2D flows cannot blow up. At most a page in the teaching pack (0.9.0), once Flow has 3D and if the result is accepted |
+| 0.1.4 | **Results are kept in the `.dflow` file** (option, on by default): the mesh and the solution under `results`, long arrays as little-endian bytes in base64 (`flow_core::pack`), exact and about a third the size of decimal text; the residual history and monitors as plain JSON | A model should open solved. Exact storage means the values, forces and fields read back bit for bit (tested) |
+| 0.1.4 | **Stored results are used only if the model's fingerprint matches** (FNV-1a of the drawing, fluid, physics, boundaries, mesh and solver settings; not the view, probes or name); a stored mesh is checked (numbering, orientation, finite values) and its quality worked out again | Results must never be shown for a model they were not solved from; changing how results are shown keeps them |
+| 0.1.4 | **Recovery copies do not keep results** | They are written every few minutes; results can be solved again |
+| 0.1.4 | **Colour ranges are kept per field in the view** (`view.ranges`, SI), values beyond take the end colours, the legend marks them; the legend itself is the button | One range per quantity, so switching fields keeps each one's range; comparing models needs the same colours |
 | 0.1.0 | **The window shell was built by a parallel worker session from Datum Plan's shell**, with a bridge so UI tests drive the real engine | Speed; the engine and the shell meet only at `wire::Out` and `Op` |
 
 ## 3. Roadmap
@@ -160,8 +165,8 @@ Every release is one small three-number version (FAMILY §9); each line below is
 | 0.1.1 | Mesh, checks, solve, results, heat and buoyancy, examples, verification report, exports, DXF, `flow-cli` | ✅ |
 | 0.1.2 | The family sidebar (Setup first, then Geometry, Physics, Mesh, Solve, Results, Values, Plots, Checks, Verify), the step-by-step Setup panel, the Values, Plots, Checks and Verify pages; the roadmap in three-number releases | ✅ |
 | 0.1.3 | **Reference values from the papers:** the cavity and heated-cavity values checked against the original papers (the cylinder's still to do: its paper's later pages); the backward-facing step compared with the measurements of Armaly et al. (1983); the heated cavity's velocity maxima | ✅ |
-| 0.1.4 | **Results kept with the model:** results saved in the .dflow file, so a model opens solved; a manual range for the colour legend | 🔜 |
-| 0.1.5 | **Drawing and the report:** a drawn-arc tool and rounded corners; contours shaded with the elements' true curved values; long tables flow over pages in the PDF report | ⬜ |
+| 0.1.4 | **Results kept with the model:** results saved in the .dflow file, so a model opens solved; a manual range for the colour legend; `flow-cli --save` | ✅ |
+| 0.1.5 | **Drawing and the report:** streamlines thin out where the region is drawn small (in a long thin region such as the heat sink they hide the colours at full view); a drawn-arc tool and rounded corners; contours shaded with the elements' true curved values; long tables flow over pages in the PDF report | ⬜ |
 | 0.1.6 | **Guide and tutorial:** help › Guide: a printable user guide with pictures of the real window; help › Tutorial: one example that uses every view, with a note on each | ⬜ |
 | 0.2.0 | **Time-dependent flow:** time stepping, with the step size chosen for accuracy; verified against flows that start from rest and have an exact answer | ⬜ |
 | 0.2.1 | **Vortex shedding:** the cylinder in a channel at Re 100: the benchmark's largest drag and lift and its Strouhal number in the verification report | ⬜ |
@@ -211,6 +216,12 @@ Every release is one small three-number version (FAMILY §9); each line below is
 - **Cut or not done:** nothing from the brief's cut list was cut (DXF import, the heat-sink example, VTU export and vorticity contours are all in). Not done: the guide and Help › Tutorial (FAMILY §10, not in the brief); multi-document tabs; a drawn-arc tool (arcs are typed as a bulge); Windows/macOS test jobs in CI (the build budget asks for Linux only; Windows runs nightly and at release).
 - **2-minute demo:** File › Examples › Flow past a cylinder, Re 20 → Home › Solve (about 5 s: watch the residuals fall) → Results: speed contours with streamlines; Results › Values: "Drag on the cylinder" 0.01116 N (× 500 = drag coefficient 5.58) → Help › Verification: 36 of 36 checks pass, the cylinder row among them.
 
+### 2026-11-18: Session 2, continued (0.1.4: models open solved; colour ranges)
+- Engine: `flow_core::pack` (exact base64 arrays, the fingerprint), `file::read_all`/`write_with`, `flow_mesh::rebuild`, `Engine::to_file`/`from_file`; the shell keeps results on Save and restores them on Open (option), the bridge and `flow-cli --save` likewise.
+- Window: models arrive with their mesh and history; the colour range dialog (legend click, properties row); help.
+- Tests: an exact round trip of the heat sink (values, fields, history, mesh angles), refusal of changed or damaged results, hostile ranges on loading, the command line's --save and resume; 7 new UI checks.
+- Released 0.1.4.
+
 ### 2026-11-18: Session 2, continued (0.1.3: the reference values from the papers)
 - The user supplied Botella & Peyret (1998), de Vahl Davis (1983), Armaly et al. (1983) and the first two pages of Schäfer & Turek (1996). Every cavity value matched the original tables; the heated cavity's Nusselt numbers are his cavity averages; Armaly's geometry and Reynolds number match the Step example.
 - Armaly's measured lengths were digitised from Figure 14 by calibrating pixels against the tick marks. A mesh and inlet-length study showed the computed lengths converged to 0.3% (2.86, 3.91, 6.64, 8.00), and found a bug in reading the reattachment point on fine meshes (a corner eddy), fixed.
@@ -230,7 +241,6 @@ Every release is one small three-number version (FAMILY §9); each line below is
 - Symmetry and slip edges must be straight and horizontal or vertical.
 - The direct solver's memory grows faster than the mesh: about 200 000 unknowns is the practical size in 0.1.
 - No stabilisation for strongly convection-dominated flow on coarse meshes (SUPG comes in 0.2): the check warns when the mesh is coarse for the speed.
-- Results are not saved in the `.dflow` file: solve again after opening.
 - Contours are drawn as four flat-shaded triangles per element (the values are quadratic); drawing speed above about 8 000 elements has not been timed.
 - The PDF report puts each section on fixed pages: a very long boundaries table or notes would overflow. Arc sides are typed as a bulge value; there is no drawn-arc tool.
 - No guide PDF and no Help › Tutorial yet; one document at a time.

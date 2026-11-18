@@ -14,7 +14,7 @@ const darkMq = window.matchMedia?.("(prefers-color-scheme: dark)");
 export const [themeTick, setThemeTick] = createSignal(0);
 export const applyTheme = () => { document.documentElement.dataset.theme = theme() === "auto" ? (darkMq?.matches ? "dark" : "light") : theme(); setThemeTick(t => t + 1); };
 darkMq?.addEventListener("change", () => theme() === "auto" && applyTheme());
-export const [opts, setOpts] = createSignal<Options>({ autosave: 5, beta: false, theme: "auto", openLast: false, units: "SI", snap: true, grid: true, map: "viridis", paper: "A4", landscape: true, company: "" });
+export const [opts, setOpts] = createSignal<Options>({ autosave: 5, beta: false, theme: "auto", openLast: false, units: "SI", snap: true, grid: true, map: "viridis", paper: "A4", landscape: true, company: "", keepResults: true });
 export const saveOpts = (o: Options) => { setOpts(o); invoke("set_options", { opts: o }).catch(() => {}); };
 export const setTheme = (t: string) => { setThemeRaw(t); applyTheme(); saveOpts({ ...opts(), theme: t }); };
 

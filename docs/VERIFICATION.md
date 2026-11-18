@@ -1,6 +1,6 @@
 # Datum Flow: verification report
 
-Version **0.1.3**, run on 2026-11-18 (4 threads, linux x86_64; 473 s). **48 of 48 checks pass**.
+Version **0.1.4**, run on 2026-11-18 (4 threads, linux x86_64; 460 s). **48 of 48 checks pass**.
 
 Every release of Datum Flow solves the problems below, whose answers are known, and compares. Any FAIL blocks the release. The same record is in the app under Help › Verification, and the cases are the test suite of `crates/flow-verify` (`cargo test -p flow-verify --release -- --include-ignored`).
 
@@ -139,11 +139,11 @@ Notes:
 
 | Case | Quantity | Reference | Datum Flow | Error | Tolerance | | Source |
 | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
-| Compared with 0.1.2 | Values unchanged since the last release, of those compared | 35 | 35 | 0 abs | 3.5e1 abs | **PASS** | Datum Flow 0.1.2 |
+| Compared with 0.1.3 | Values unchanged since the last release, of those compared | 47 | 47 | 0 abs | 4.7e1 abs | **PASS** | Datum Flow 0.1.3 |
 
 Notes:
 
-- **Compared with 0.1.2: Values unchanged since the last release, of those compared.** Each value that changed is listed below with its old and new value.
+- **Compared with 0.1.3: Values unchanged since the last release, of those compared.** Each value that changed is listed below with its old and new value.
 
 ## Not verified
 

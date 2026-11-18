@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.4 — 2026-11-18
+
+Models open solved, and the colours of results can be fixed by hand.
+
+- **Results kept with the model.** Saving keeps the mesh and the solution in the .dflow file, so a model opens solved: contours, streamlines, probes, values, the residual and monitor history, all without solving again. Solving again starts from the kept answer, so it takes one step. The numbers are stored exactly; a model of 25 000 unknowns makes a file of about 1 MB.
+- **Only results that still fit.** If a file's model was changed outside Datum Flow, its results are left out, and Messages says why. The results never belong to another model.
+- **Your choice.** File › Options › "Keep results in the file" turns it off for small files.
+- **Colour range by hand.** Click the legend, or Results › Range in the properties: set the low and high values the colours run between, for each field. The range is kept with the model, so several models or meshes can be compared in the same colours. Values beyond it take the end colours, and the legend marks them with ≥ and ≤. Automatic sets it back.
+- **Command line.** `flow-cli solve model.dflow --save solved.dflow` writes the model with its results, to open solved in the window. Solving a file that keeps results starts from them.
+
 ## 0.1.3 — 2026-11-18
 
 The verification report now checks its reference values against the original papers, and the backward-facing step is compared with the experiment.

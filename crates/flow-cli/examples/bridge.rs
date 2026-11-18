@@ -59,9 +59,12 @@ fn bridge() {
             }
             // The tests hand over the file's text instead of a path on disk.
             "open" => {
-                let (m, n) = file::read(args["text"].as_str().ok_or("No file was given.")?)?;
+                let (m, mut n, results) = file::read_all(args["text"].as_str().ok_or("No file was given.")?)?;
                 doc = Doc::new(m);
                 eng.invalidate();
+                if let Some(r) = results {
+                    if let Err(e) = eng.from_file(&doc.m, &r, doc.revision) { n.push(e); }
+                }
                 (path, saved, notes) = (Some(args["path"].as_str().unwrap_or("C:/Models/Opened.dflow").to_string()), 0, n);
                 Ok(state(&doc, &path, saved, &notes, &eng))
             }
@@ -70,7 +73,7 @@ fn bridge() {
                 saved = doc.revision;
                 Ok(state(&doc, &path, saved, &notes, &eng))
             }
-            "file_text" => Ok(json!(file::write(&doc.m))),
+            "file_text" => Ok(json!(file::write_with(&doc.m, if args["results"].as_bool() == Some(false) { None } else { eng.to_file(&doc.m, doc.revision) }.as_ref()))),
             "fluid_preset" => fluid::preset(args["name"].as_str().unwrap_or(""), args["t"].as_f64().unwrap_or(293.15)).map(|f| json!(f)).ok_or_else(|| "That fluid is not built in.".to_string()),
             "import_dxf" => {
                 let (outlines, n) = flow_core::dxf::read(args["text"].as_str().ok_or("No drawing was given.")?, args["scale"].as_f64().unwrap_or(1.0))?;

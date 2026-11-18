@@ -37,6 +37,7 @@ It is for mechanical, process, HVAC and energy engineers, researchers, students 
 - **Results:** contours, arrows and streamlines; probes and line plots; flow rate, pressure drop, drag and lift, wall heat flow and Nusselt number.
 - **Verification:** exact solutions, order of accuracy and published benchmarks, in [docs/VERIFICATION.md](docs/VERIFICATION.md) and in Help › Verification.
 
+- **Files:** a model saves with its mesh and results, and opens solved.
 - **Exports:** PDF report, VTU (opens in free viewers such as ParaView), CSV, PNG; DXF outlines in; `flow-cli` runs a model from the command line.
 
 The [changelog](CHANGELOG.md) lists every release, and the [roadmap](docs/MEMORY.md) says where it is heading.

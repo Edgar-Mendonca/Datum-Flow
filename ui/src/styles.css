@@ -551,6 +551,10 @@ button.irow:hover, .irow span:hover { color: var(--blue); }
 .viewwrap > .view { flex: 1; min-width: 0; }
 .sover { position: absolute; inset: 0; pointer-events: none; }
 .sover > * { pointer-events: auto; }
+.sleg { text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.sleg:hover { border-color: var(--blue); }
+.sleg .sfixed { font: 500 8.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; font-style: normal; color: var(--bg2); background: var(--blue); padding: 0 4px; margin-left: 6px; }
+.irange { display: flex; align-items: center; gap: 6px; } .irange span { flex: 1; font-size: 12px; }
 .sleg { position: absolute; top: 10px; right: 10px; background: var(--bg2); border: 1px solid var(--line3); padding: 7px 9px 8px; font-size: 11px; min-width: 92px; }
 .sleg > b { display: block; font: 500 9.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text2); margin-bottom: 6px; }
 .sleg > b small { font: 400 10px var(--mono); letter-spacing: 0; text-transform: none; color: var(--muted); margin-left: 6px; }

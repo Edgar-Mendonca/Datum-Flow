@@ -181,12 +181,13 @@ fn hostile_models_are_made_safe_on_loading() {
         monitors: vec![Monitor { name: "x".into(), kind: MonitorKind::Drag { boundary: 99 } }],
         probes: vec![Probe { name: "p".into(), x: bad, y: 0.0 }],
         lines: vec![Line { n: 0, ..Default::default() }, Line { a: [bad, 0.0], ..Default::default() }],
+        view: View { ranges: [("speed".to_string(), [1.0, 0.0]), ("pressure".to_string(), [bad, 1.0]), ("u".to_string(), [0.0, 2.0])].into_iter().collect(), ..Default::default() },
         ..Default::default()
     };
     let notes = m.normalize();
     assert!(notes.len() >= 8, "{notes:?}");
     invariants(&m);
-    assert!(m.shapes.len() == 1 && m.boundaries.len() == 2 && m.boundaries[0].edges.len() == 1 && m.boundaries[1].edges.is_empty() && m.monitors.is_empty() && m.lines.len() == 1 && m.lines[0].n == 2);
+    assert!(m.shapes.len() == 1 && m.boundaries.len() == 2 && m.boundaries[0].edges.len() == 1 && m.boundaries[1].edges.is_empty() && m.monitors.is_empty() && m.lines.len() == 1 && m.lines[0].n == 2 && m.view.ranges.len() == 1);
     // Normalising again changes nothing more.
     let again = m.clone();
     assert!(m.normalize().is_empty() && m == again);

@@ -35,7 +35,13 @@ export const lut = (map: string, bands = 0): Uint8Array => {
 };
 export const cssColour = (map: string, f: number) => { const t = lut(map), i = 3 * Math.max(0, Math.min(255, Math.round(f * 255))); return `rgb(${t[i]},${t[i + 1]},${t[i + 2]})`; };
 /** The range a field is coloured over: its own, or symmetric about zero for the diverging map. */
+/** The colour range of a field: the one set by hand (Results › Range), else from its values. */
 export const fieldRange = (f: NodalField, map: string): [number, number] => {
+  const fixed = out()?.m.view.ranges?.[f.id];
+  return fixed && fixed[1] > fixed[0] ? [fixed[0], fixed[1]] : autoRange(f, map);
+};
+/** The automatic colour range: the field's own, symmetric about zero for the diverging map. */
+export const autoRange = (f: NodalField, map: string): [number, number] => {
   if (map === "diverging") { const m = Math.max(Math.abs(f.min), Math.abs(f.max)) || 1; return [-m, m]; }
   return f.max > f.min ? [f.min, f.max] : [f.min - 0.5, f.min + 0.5];
 };
@@ -90,7 +96,7 @@ const raster = (m: MeshView, f: NodalField, map: string, bands: number, t: { cx:
   ctx.putImageData(img, 0, 0);
   return cv;
 };
-const contourKey = (f: NodalField, m: MeshView) => `${f.id}|${f.min}|${f.max}|${f.values.length}|${m.tris.length}|${M().view.map}|${M().view.bands}`;
+const contourKey = (f: NodalField, m: MeshView) => `${f.id}|${f.min}|${f.max}|${f.values.length}|${m.tris.length}|${M().view.map}|${M().view.bands}|${fieldRange(f, M().view.map).join(",")}`;
 const drawContours = (ctx: CanvasRenderingContext2D, env: Env) => {
   const f = field(), m = mesh();
   if (!f || !m || f.values.length * 2 !== m.nodes.length) return;

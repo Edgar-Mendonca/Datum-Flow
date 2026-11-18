@@ -8,7 +8,9 @@ import { Help } from "./help";
 import { C, cmd } from "./cmds";
 import { edgeCount } from "./canvas";
 import { running, summary, arrowCount, setArrowCount } from "./sim";
-import { MeshQuality, linePlot } from "./simui";
+import { MeshQuality, linePlot, askRange } from "./simui";
+/** The kind of unit of each field, for showing a range set by hand. */
+const FKIND: Record<string, string> = { speed: "speed", u: "speed", v: "speed", pressure: "pressure", temperature: "temp", vorticity: "vorticity", stream: "stream" };
 
 const Sec = (p: { t: string; h?: string; children: JSX.Element; tools?: JSX.Element }) => <section class="isec"><h3>{p.t}{p.h && <Help k={p.h} />}<span class="grow" />{p.tools}</h3>{p.children}</section>;
 /** A label on the left, a control on the right. */
@@ -344,6 +346,8 @@ const ResultsCard = () => {
       <F l="Colour by"><Pick value={v().field} set={x => put({ field: x })} options={FIELDS.filter(f => f[0] !== "temperature" || M().physics.heat)} /></F>
       <F l="Colour map" hint="Viridis, Inferno and Cividis read evenly from low to high, also in grey print and for colour-blind readers."><Pick value={v().map} set={x => put({ map: x })} options={MAPS} /></F>
       <F l="Bands" hint="Steps of colour instead of a smooth shade; 0 is smooth."><Num value={v().bands} min={0} sig={3} set={x => put({ bands: Math.round(x) })} /></F>
+      <F l="Range" hint="Automatic follows the field; a range set by hand is kept with the model, so several models can be compared in the same colours."><div class="irange"><span>{v().ranges?.[v().field] ? `${fmt(FKIND[v().field] ?? "ratio", v().ranges![v().field][0], 4)} to ${fmt(FKIND[v().field] ?? "ratio", v().ranges![v().field][1], 4)}` : "Automatic"}</span>
+        <button class="btn sm" disabled={!out()!.has_results} onClick={askRange}>Set…</button><Show when={v().ranges?.[v().field]}><button class="btn sm" onClick={() => { const r = { ...v().ranges }; delete r[v().field]; put({ ranges: r }); }}>Auto</button></Show></div></F>
       <F l="Show"><div class="checks"><Check label="Streamlines" value={v().streamlines} set={x => put({ streamlines: x })} /><Check label="Arrows" value={v().arrows} set={x => put({ arrows: x })} /><Check label="Mesh" value={v().mesh} set={x => put({ mesh: x })} /></div></F>
       <Show when={v().arrows}><F l="Arrows" hint="About how many arrows are drawn over the region."><div class="slider"><span>few</span><input type="range" min="100" max="3000" step="100" value={arrowCount()} onChange={e => setArrowCount(+e.currentTarget.value)} /><span>many</span></div></F></Show>
       <Show when={out()!.has_results}><div class="ibtns"><button class="btn sm" onClick={() => cmd("values")}>Values…</button><button class="btn sm" onClick={() => cmd("probe")}>Probe</button><button class="btn sm" onClick={() => cmd("lineplot")}>Line plot</button></div></Show>

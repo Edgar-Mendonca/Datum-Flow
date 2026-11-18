@@ -6,4 +6,4 @@ pub mod mesh;
 pub mod size;
 
 pub use check::{check, Issue};
-pub use mesh::{mesh, BEdge, Mesh, Quality};
+pub use mesh::{mesh, rebuild, BEdge, Mesh, Quality};

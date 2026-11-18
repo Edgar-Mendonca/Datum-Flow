@@ -3,7 +3,9 @@ use flow_core::numbers::numbers;
 use flow_mesh::{check, Issue, Mesh, Quality};
 use flow_post::values::{along, arrows, monitor, sample, Sample, Values};
 use flow_post::{fields, Locator};
-use flow_solve::{solve, Row, Setup, Solved, SparseLu, State, Stats, Step};
+use flow_core::pack;
+use flow_solve::{solve, Dofs, Row, Setup, Solved, SparseLu, State, Stats, Step};
+use serde_json::{json, Value};
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -196,6 +198,92 @@ impl Engine {
     }
     pub fn summary(&self) -> Option<&Summary> {
         self.results.as_ref().map(|r| &r.summary)
+    }
+
+    /// The mesh and results to keep in the `.dflow` file, if there are results for this revision.
+    /// Long arrays are stored exactly and compactly (`flow_core::pack`); the fingerprint ties them
+    /// to the model they were solved from.
+    pub fn to_file(&self, m: &Model, revision: u64) -> Option<Value> {
+        let (Some((g, _)), Some(r)) = (&self.mesh, &self.results) else { return None };
+        if self.revision != revision {
+            return None;
+        }
+        let s = &r.summary;
+        let st = &r.solved.state;
+        Some(json!({
+            "fingerprint": pack::fingerprint(m),
+            "mesh": {
+                "nv": g.nv, "size": g.size,
+                "nodes": pack::f64s(&g.nodes.iter().flatten().copied().collect::<Vec<f64>>()),
+                "tris": pack::u32s(&g.tris.iter().flatten().copied().collect::<Vec<u32>>()),
+                "edges": pack::u32s(&g.edges.iter().flat_map(|e| [e.shape, e.edge, e.boundary, e.n[0], e.n[1], e.n[2]]).collect::<Vec<u32>>()),
+            },
+            "u": pack::f64s(&st.u.iter().flatten().copied().collect::<Vec<f64>>()),
+            "p": pack::f64s(&st.p),
+            "t": pack::f64s(&st.t),
+            "residual": pack::f64s(&r.solved.residual),
+            "summary": {
+                "converged": s.converged, "stopped": s.stopped, "message": s.message, "advice": s.advice,
+                "unknowns": s.stats.unknowns, "nonzeros": s.stats.nonzeros, "seconds": s.stats.seconds, "steps": s.stats.steps,
+                "history": s.history.iter().map(|h| [h.iter as f64, (h.kind == "Newton") as u8 as f64, h.load, h.momentum, h.continuity, h.energy]).collect::<Vec<_>>(),
+                "monitor_names": s.monitor_names, "monitor_kinds": s.monitor_kinds, "monitors": s.monitors,
+            },
+        }))
+    }
+
+    /// Take the mesh and results stored in a file, if they still belong to this model. An error
+    /// says why they were not used (the model was changed, or the data is damaged); the model
+    /// is then simply not solved.
+    pub fn from_file(&mut self, m: &Model, v: &Value, revision: u64) -> R<()> {
+        if v["fingerprint"].as_str() != Some(pack::fingerprint(m).as_str()) {
+            return Err("The results stored in this file do not match its model (it was changed outside Datum Flow), so they were left out. Solve again to see them.".into());
+        }
+        let damaged = || "The results stored in this file are damaged, so they were left out. Solve again to see them.".to_string();
+        let f = |k: &str| v[k].as_str().and_then(pack::to_f64s).ok_or_else(damaged);
+        let mv = &v["mesh"];
+        let nodes = mv["nodes"].as_str().and_then(pack::to_f64s).ok_or_else(damaged)?;
+        let tris = mv["tris"].as_str().and_then(pack::to_u32s).ok_or_else(damaged)?;
+        let edges = mv["edges"].as_str().and_then(pack::to_u32s).ok_or_else(damaged)?;
+        let (nv, size) = (mv["nv"].as_u64().ok_or_else(damaged)? as usize, mv["size"].as_f64().ok_or_else(damaged)?);
+        if nodes.len() % 2 != 0 || tris.len() % 6 != 0 || edges.len() % 6 != 0 {
+            return Err(damaged());
+        }
+        let g = flow_mesh::rebuild(
+            nodes.chunks(2).map(|c| [c[0], c[1]]).collect(), nv,
+            tris.chunks(6).map(|c| [c[0], c[1], c[2], c[3], c[4], c[5]]).collect(),
+            edges.chunks(6).map(|c| flow_mesh::BEdge { shape: c[0], edge: c[1], boundary: c[2], n: [c[3], c[4], c[5]] }).collect(), size,
+        ).map_err(|e| format!("{e} The results were left out; solve again to see them."))?;
+        let (u, p, t, residual) = (f("u")?, f("p")?, f("t")?, f("residual")?);
+        let heat = !t.is_empty();
+        let dofs = Dofs::of(&g, heat);
+        if heat != m.physics.heat || u.len() != 2 * dofs.nn || p.len() != dofs.nv || (heat && t.len() != dofs.nn) || residual.len() != dofs.n()
+            || !u.iter().chain(&p).chain(&t).chain(&residual).all(|x| x.is_finite()) || g.edges.iter().any(|e| m.boundary(e.boundary).is_none()) {
+            return Err(damaged());
+        }
+        let state = State { u: u.chunks(2).map(|c| [c[0], c[1]]).collect(), p, t };
+        let sv = &v["summary"];
+        let num = |k: &str| sv[k].as_f64().unwrap_or(0.0);
+        let strs = |k: &str| sv[k].as_array().map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect::<Vec<_>>()).unwrap_or_default();
+        const KINDS: [&str; 8] = ["force", "flow", "pressure", "temp", "power", "ratio", "speed", "len"];
+        let history: Vec<Row> = sv["history"].as_array().map(|a| a.iter().filter_map(|h| {
+            let h: Vec<f64> = h.as_array()?.iter().filter_map(|x| x.as_f64()).collect();
+            (h.len() == 6).then(|| Row { iter: h[0] as u32, kind: if h[1] == 1.0 { "Newton" } else { "Picard" }, load: h[2], momentum: h[3], continuity: h[4], energy: h[5] })
+        }).collect()).unwrap_or_default();
+        let stats = Stats { unknowns: num("unknowns") as usize, nonzeros: num("nonzeros") as usize, seconds: num("seconds"), linear_solver: "sparse direct LU", steps: num("steps") as u32 };
+        let summary = Summary {
+            converged: sv["converged"].as_bool().unwrap_or(false), stopped: sv["stopped"].as_bool().unwrap_or(false),
+            message: sv["message"].as_str().unwrap_or("").chars().take(2000).collect(), advice: strs("advice"), stats: stats.clone(), history: history.clone(),
+            monitor_names: strs("monitor_names"),
+            monitor_kinds: strs("monitor_kinds").iter().map(|k| KINDS.iter().find(|x| **x == k).copied().unwrap_or("ratio")).collect(),
+            monitors: sv["monitors"].as_array().map(|a| a.iter().map(|r| r.as_array().map(|r| r.iter().map(|x| x.as_f64().unwrap_or(f64::NAN)).collect()).unwrap_or_default()).collect()).unwrap_or_default(),
+        };
+        let x = state.to_vec(dofs);
+        let solved = Solved { state, x, residual, dofs, converged: summary.converged, stopped: summary.stopped, history, message: summary.message.clone(), stats };
+        let g = Arc::new(g);
+        self.results = Some(Results { locator: Locator::new(&g), solved, psi: None, summary });
+        self.mesh = Some((g, 0.0));
+        self.revision = revision;
+        Ok(())
     }
 
     fn need(&self) -> R<(&Mesh, &Results)> {
@@ -443,5 +531,47 @@ mod tests {
             assert!((coarse - fine).abs() <= within * fine.abs(), "{id} {name}: {coarse} on the coarse mesh, {fine} on the fine one");
             eprintln!("{id} {name}: {coarse:.6e} → {fine:.6e} ({:.1e})", (coarse - fine).abs() / fine.abs());
         }
+    }
+
+    #[test]
+    fn results_kept_in_the_file_come_back_exactly_and_only_for_the_same_model() {
+        let m = examples::example("heatsink").unwrap();
+        let mut e = Engine::default();
+        assert!(e.to_file(&m, 1).is_none());
+        e.solve_now(&m, 1, &mut |_| true).unwrap();
+        assert!(e.to_file(&m, 2).is_none(), "results of another revision are not stored");
+        let stored = e.to_file(&m, 1).unwrap();
+        let text = flow_core::file::write_with(&m, Some(&stored));
+        let plain = flow_core::file::write(&m);
+        eprintln!("heat sink file: {} kB with results, {} kB without", text.len() / 1024, plain.len() / 1024);
+        let (m2, notes, results) = flow_core::file::read_all(&text).unwrap();
+        assert!(notes.is_empty() && m2 == m);
+        let mut f = Engine::default();
+        f.from_file(&m2, results.as_ref().unwrap(), 5).unwrap();
+        assert!(f.has_results() && f.has_mesh() && f.revision == 5);
+        // Every number reads back the same: values, fields, the history.
+        let (a, b) = (e.values(&m).unwrap(), f.values(&m2).unwrap());
+        assert!(a.len() == b.len() && a.iter().zip(&b).all(|(x, y)| x.name == y.name && (x.value == y.value || (x.value.is_nan() && y.value.is_nan()))));
+        assert_eq!(e.field("temperature", 0).unwrap().values, f.field("temperature", 0).unwrap().values);
+        let (sa, sb) = (e.summary().unwrap(), f.summary().unwrap());
+        assert!(sa.history == sb.history && sa.monitors == sb.monitors && sa.monitor_kinds == sb.monitor_kinds && sa.message == sb.message && sb.converged);
+        assert_eq!(e.mesh_view().unwrap().angle, f.mesh_view().unwrap().angle);
+        // Solving again resumes from the stored answer: one iteration.
+        assert_eq!(f.solve_now(&m2, 5, &mut |_| true).unwrap().history.len(), 1);
+        // A model changed outside the app, or damaged data: the results are refused, in words.
+        let mut changed = m.clone();
+        changed.fluid.mu *= 1.01;
+        let mut g = Engine::default();
+        assert!(g.from_file(&changed, &stored, 1).unwrap_err().contains("do not match") && !g.has_results());
+        let mut bad = stored.clone();
+        bad["u"] = json!("AAAA");
+        assert!(g.from_file(&m, &bad, 1).unwrap_err().contains("damaged") && !g.has_results());
+        bad = stored.clone();
+        bad["mesh"]["tris"] = json!("not base64!");
+        assert!(g.from_file(&m, &bad, 1).is_err());
+        // The view is not part of the fingerprint: a different field shown keeps the results.
+        let mut shown = m.clone();
+        shown.view.field = "speed".into();
+        assert!(g.from_file(&shown, &stored, 1).is_ok());
     }
 }

@@ -438,10 +438,12 @@ pub struct View {
     pub mesh: bool,
     /// Number of colour bands (0 = smooth).
     pub bands: u32,
+    /// Colour ranges set by hand, by field (SI units: low, high); fields not listed are automatic.
+    pub ranges: std::collections::BTreeMap<String, [f64; 2]>,
 }
 impl Default for View {
     fn default() -> Self {
-        View { field: "speed".into(), map: "viridis".into(), arrows: false, streamlines: true, mesh: false, bands: 0 }
+        View { field: "speed".into(), map: "viridis".into(), arrows: false, streamlines: true, mesh: false, bands: 0, ranges: Default::default() }
     }
 }
 
@@ -632,6 +634,11 @@ impl Model {
         self.lines.retain(|l| l.a.iter().chain(l.b.iter()).all(|v| v.is_finite()));
         for l in &mut self.lines { l.n = l.n.clamp(2, 5000); }
         self.view.bands = self.view.bands.min(64);
+        let before = self.view.ranges.len();
+        self.view.ranges.retain(|k, r| k.len() < 40 && r[0].is_finite() && r[1].is_finite() && r[1] > r[0]);
+        if self.view.ranges.len() != before {
+            notes.push("Colour ranges with impossible values were set back to automatic.".into());
+        }
         notes
     }
 }

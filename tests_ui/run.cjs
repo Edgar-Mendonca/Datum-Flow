@@ -469,6 +469,41 @@ const ask = (cmd, args) => new Promise(res => { const id = nextId++; waiting.set
   await p.keyboard.press("Control+z"); await p.waitForTimeout(150);
   await p.click('.side button:has-text("Geometry")'); await p.waitForTimeout(100);
 
+  // ---------- 0.1.4: results kept in the file, and a colour range set by hand
+  await openExample("Flow past a cylinder, Re 20");
+  await run("Solve"); await solved();
+  const keptText = (await ask("file_text")).ok;
+  check("a solved model is saved with its mesh and results", JSON.parse(keptText).results?.fingerprint?.length === 16 && JSON.parse((await ask("file_text", { results: false })).ok).results === undefined);
+  const changedText = JSON.parse(keptText); changedText.model.fluid.mu *= 2;
+  await p.evaluate(([a, b]) => { window.__files["C:/Models/Solved cylinder.dflow"] = a; window.__files["C:/Models/Edited cylinder.dflow"] = b; }, [keptText, JSON.stringify(changedText)]);
+  await openExample("Lid-driven cavity, Re 100");
+  await p.click(".tabs .file"); await p.waitForSelector(".bs .home");
+  await p.click('.recent tr:has-text("Solved cylinder")'); await p.waitForTimeout(900);
+  const reopened = await state();
+  check("it opens solved: results, mesh, legend and history, without solving", reopened.has_results && reopened.has_mesh && (await p.locator(".sleg").count()) === 1 && (await calls("mesh_view")).length >= 1 && (await text(".srun")).includes("CONVERGED"), await text(".srun"));
+  await p.click('.side button:has-text("Values")'); await p.waitForTimeout(500);
+  check("the values of a model opened solved are there at once", /Drag on the cylinder\s+0\.0111/.test(await text(".pgview")));
+  await p.click('.side button:has-text("Results")'); await p.waitForTimeout(300);
+  await shot("27-opened-solved"); await hear();
+  // The colour range: click the legend, set it, and back to automatic.
+  await p.click(".sleg"); await p.waitForTimeout(200);
+  const rin = p.locator(".dlg .form input");
+  await rin.nth(0).fill("0"); await rin.nth(0).press("Tab"); await rin.nth(1).fill("0.2"); await rin.nth(1).press("Tab");
+  await p.click(".dlg .btn.pri"); await p.waitForTimeout(500);
+  const rv = (await state()).m.view.ranges?.speed;
+  check("the legend sets a colour range, kept with the model", !!rv && Math.abs(rv[0]) < 1e-12 && Math.abs(rv[1] - 0.2) < 1e-12 && (await state()).has_results, JSON.stringify(rv));
+  check("the legend says the range is fixed and marks the values beyond it", (await text(".sleg")).includes("FIXED") && (await text(".sleg")).includes("≥ 0.2"), await text(".sleg"));
+  await shot("28-fixed-range"); await hear();
+  await p.click(".sleg"); await p.waitForTimeout(200);
+  await p.click('.dlg .btn:has-text("Automatic")'); await p.waitForTimeout(300);
+  check("Automatic sets the range back", !(await state()).m.view.ranges?.speed && !(await text(".sleg")).includes("FIXED"));
+  // A file whose model was changed outside the app: the results are left out, and the notes say why.
+  await p.keyboard.press("Control+s"); await p.waitForTimeout(200);
+  await p.click(".tabs .file"); await p.waitForSelector(".bs .home");
+  await p.click('.recent tr:has-text("Edited cylinder")'); await p.waitForTimeout(600);
+  const edited = await state();
+  check("results that no longer match the model are left out, with a note", !edited.has_results && edited.notes.some(n => n.includes("do not match")), JSON.stringify(edited.notes));
+
   // Stop and resume
   await openExample("Lid-driven cavity, Re 100");
   await p.evaluate(() => { window.__stopAfter = 3; });

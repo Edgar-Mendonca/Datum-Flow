@@ -467,6 +467,43 @@ pub fn mesh(m: &Model) -> Result<Mesh, String> {
     Ok(Mesh { nodes, nv, tris, edges, size: h, angle, quality })
 }
 
+/// A mesh read back from a file: checked for sound numbering and orientation, its quality worked
+/// out again. An error says what is wrong; the caller then meshes afresh.
+pub fn rebuild(nodes: Vec<[f64; 2]>, nv: usize, tris: Vec<[u32; 6]>, edges: Vec<BEdge>, size: f64) -> Result<Mesh, String> {
+    let bad = |what: &str| Err(format!("The stored mesh is damaged ({what})."));
+    let nn = nodes.len();
+    if tris.is_empty() || nv == 0 || nv > nn || tris.len() > MAX_ELEMENTS || !size.is_finite() {
+        return bad("its sizes do not fit together");
+    }
+    if !nodes.iter().all(|p| p[0].is_finite() && p[1].is_finite()) {
+        return bad("a node is not a number");
+    }
+    for t in &tris {
+        if t[..3].iter().any(|n| *n as usize >= nv) || t[3..].iter().any(|n| (*n as usize) < nv || *n as usize >= nn) {
+            return bad("an element's node numbers are out of range");
+        }
+        let p = [nodes[t[0] as usize], nodes[t[1] as usize], nodes[t[2] as usize]];
+        if (p[1][0] - p[0][0]) * (p[2][1] - p[0][1]) - (p[2][0] - p[0][0]) * (p[1][1] - p[0][1]) <= 0.0 {
+            return bad("an element is folded");
+        }
+    }
+    if edges.iter().any(|e| e.n.iter().any(|n| *n as usize >= nn)) {
+        return bad("an edge's node numbers are out of range");
+    }
+    let mut owner: HashMap<(u32, u32), usize> = HashMap::with_capacity(tris.len() * 2);
+    let mut pairs = vec![];
+    for (k, t) in tris.iter().enumerate() {
+        for j in 0..3 {
+            let (a, b) = (t[j], t[(j + 1) % 3]);
+            if let Some(o) = owner.insert((a.min(b), a.max(b)), k) {
+                pairs.push((o, k));
+            }
+        }
+    }
+    let (quality, angle) = quality(&nodes, nv, &tris, &pairs);
+    Ok(Mesh { nodes, nv, tris, edges, size, angle, quality })
+}
+
 fn quality(nodes: &[[f64; 2]], nv: usize, tris: &[[u32; 6]], pairs: &[(usize, usize)]) -> (Quality, Vec<f32>) {
     let mut q = Quality { elements: tris.len(), nodes: nodes.len(), unknowns: 2 * nodes.len() + nv, min_angle: 180.0, max_ratio: 1.0, edges: [f64::INFINITY, 0.0, 0.0], ..Default::default() };
     let mut angles = Vec::with_capacity(tris.len());
@@ -680,6 +717,23 @@ mod tests {
         // A broken outline.
         m.shapes[0].geom = Geom::poly(&[[0.0, 0.0], [2.0, 2.0], [2.0, 0.0], [0.0, 1.0]]);
         assert!(mesh(&m).unwrap_err().contains("cross"));
+    }
+
+    #[test]
+    fn a_mesh_rebuilt_from_its_parts_is_the_same_and_damage_is_refused() {
+        let g = mesh(&cylinder()).unwrap();
+        let r = rebuild(g.nodes.clone(), g.nv, g.tris.clone(), g.edges.clone(), g.size).unwrap();
+        assert!(r.angle == g.angle && r.quality.elements == g.quality.elements && r.quality.max_ratio == g.quality.max_ratio && r.quality.min_angle == g.quality.min_angle);
+        let mut t = g.tris.clone();
+        t[0].swap(1, 2);
+        assert!(rebuild(g.nodes.clone(), g.nv, t, g.edges.clone(), g.size).unwrap_err().contains("folded"));
+        let mut t = g.tris.clone();
+        t[3][4] = u32::MAX;
+        assert!(rebuild(g.nodes.clone(), g.nv, t, g.edges.clone(), g.size).unwrap_err().contains("out of range"));
+        let mut n = g.nodes.clone();
+        n[5][0] = f64::NAN;
+        assert!(rebuild(n, g.nv, g.tris.clone(), g.edges.clone(), g.size).is_err());
+        assert!(rebuild(g.nodes.clone(), g.nodes.len() + 1, g.tris.clone(), g.edges.clone(), g.size).is_err());
     }
 
     #[test]

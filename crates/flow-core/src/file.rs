@@ -10,7 +10,15 @@ pub const MAX_BYTES: usize = 64 * 1024 * 1024;
 
 /// Write the model as a `.dflow` document.
 pub fn write(m: &Model) -> String {
-    let v = serde_json::json!({ "app": "Datum Flow", "format": FORMAT, "version": env!("CARGO_PKG_VERSION"), "model": m });
+    write_with(m, None)
+}
+
+/// Write the model, and its mesh and results when given (see `flow_cli::Engine::to_file`).
+pub fn write_with(m: &Model, results: Option<&Value>) -> String {
+    let mut v = serde_json::json!({ "app": "Datum Flow", "format": FORMAT, "version": env!("CARGO_PKG_VERSION"), "model": m });
+    if let Some(r) = results {
+        v["results"] = r.clone();
+    }
     serde_json::to_string_pretty(&v).unwrap_or_else(|_| "{}".into())
 }
 
@@ -48,6 +56,12 @@ fn migrate(_from: u32, _model: &mut serde_json::Map<String, Value>, _notes: &mut
 /// Read a `.dflow` document. Returns the model and notes about anything that had to be left out
 /// or reset. An error means nothing could be read.
 pub fn read(text: &str) -> Result<(Model, Vec<String>), String> {
+    read_all(text).map(|(m, notes, _)| (m, notes))
+}
+
+/// Read a `.dflow` document with the stored mesh and results, if it has them (still to be
+/// checked against the model by whoever uses them).
+pub fn read_all(text: &str) -> Result<(Model, Vec<String>, Option<Value>), String> {
     if text.len() > MAX_BYTES {
         return Err("This file is too large to be a Datum Flow model.".into());
     }
@@ -88,5 +102,6 @@ pub fn read(text: &str) -> Result<(Model, Vec<String>), String> {
         view: take(&o, "view", "The view settings", &mut notes),
     };
     notes.extend(m.normalize());
-    Ok((m, notes))
+    let results = root.get("results").filter(|r| r.is_object()).cloned();
+    Ok((m, notes, results))
 }
